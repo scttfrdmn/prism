@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/scttfrdmn/prism/pkg/aws"
+	"github.com/scttfrdmn/prism/pkg/sshhostkeys"
 	"github.com/scttfrdmn/prism/pkg/state"
 	"github.com/scttfrdmn/prism/pkg/types"
 )
@@ -235,6 +236,10 @@ func (sm *StateMonitor) handleTerminatedInstance(inst types.Instance) {
 			// Remove from local state
 			if err := sm.stateManager.RemoveInstance(inst.Name); err != nil {
 				log.Printf("Warning: Failed to remove terminated instance: %v", err)
+			}
+			// The instance no longer exists, so neither does its host key.
+			if err := sshhostkeys.Forget(inst.ID); err != nil {
+				log.Printf("Warning: Failed to forget host key of %s: %v", inst.Name, err)
 			}
 			return
 		}

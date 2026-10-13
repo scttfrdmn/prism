@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/scttfrdmn/prism/pkg/sshhostkeys"
 	"github.com/scttfrdmn/prism/pkg/types"
 )
 
@@ -41,21 +42,19 @@ func (e *SSHRemoteExecutor) Execute(ctx context.Context, instanceName string, co
 	startTime := time.Now()
 
 	// Get instance IP (this would integrate with existing instance management)
-	instanceIP, err := e.getInstanceIP(instanceName)
+	instanceIP, instanceID, err := e.getInstanceIP(instanceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get instance IP: %w", err)
 	}
 
 	// Build SSH command
-	sshArgs := []string{
-		"-i", e.keyPath,
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "UserKnownHostsFile=/dev/null",
+	sshArgs := append([]string{"-i", e.keyPath}, sshhostkeys.Options(instanceID)...) // verify the host key (accept on first use)
+	sshArgs = append(sshArgs,
 		"-o", "LogLevel=ERROR",
 		"--", // end of options: destination/command can never be parsed as ssh flags
 		fmt.Sprintf("%s@%s", e.user, instanceIP),
 		command,
-	}
+	)
 
 	// Execute command with context
 	cmd := exec.CommandContext(ctx, "ssh", sshArgs...) //nolint:gosec // G204: fixed binary with argv (no local shell); remote command is the template's own provisioning script by design
@@ -87,7 +86,7 @@ func (e *SSHRemoteExecutor) ExecuteScript(ctx context.Context, instanceName stri
 	startTime := time.Now()
 
 	// Get instance IP
-	instanceIP, err := e.getInstanceIP(instanceName)
+	instanceIP, instanceID, err := e.getInstanceIP(instanceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get instance IP: %w", err)
 	}
@@ -96,15 +95,13 @@ func (e *SSHRemoteExecutor) ExecuteScript(ctx context.Context, instanceName stri
 	command := scriptCommand(script)
 
 	// Build SSH command
-	sshArgs := []string{
-		"-i", e.keyPath,
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "UserKnownHostsFile=/dev/null",
+	sshArgs := append([]string{"-i", e.keyPath}, sshhostkeys.Options(instanceID)...) // verify the host key (accept on first use)
+	sshArgs = append(sshArgs,
 		"-o", "LogLevel=ERROR",
 		"--", // end of options: destination/command can never be parsed as ssh flags
 		fmt.Sprintf("%s@%s", e.user, instanceIP),
 		command,
-	}
+	)
 
 	// Execute script with context
 	cmd := exec.CommandContext(ctx, "ssh", sshArgs...) //nolint:gosec // G204: fixed binary with argv (no local shell); remote command is the template's own provisioning script by design
@@ -134,21 +131,19 @@ func (e *SSHRemoteExecutor) ExecuteScript(ctx context.Context, instanceName stri
 // CopyFile copies a file from local to remote instance via SCP
 func (e *SSHRemoteExecutor) CopyFile(ctx context.Context, instanceName string, localPath, remotePath string) error {
 	// Get instance IP
-	instanceIP, err := e.getInstanceIP(instanceName)
+	instanceIP, instanceID, err := e.getInstanceIP(instanceName)
 	if err != nil {
 		return fmt.Errorf("failed to get instance IP: %w", err)
 	}
 
 	// Build SCP command
-	scpArgs := []string{
-		"-i", e.keyPath,
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "UserKnownHostsFile=/dev/null",
+	scpArgs := append([]string{"-i", e.keyPath}, sshhostkeys.Options(instanceID)...) // verify the host key (accept on first use)
+	scpArgs = append(scpArgs,
 		"-o", "LogLevel=ERROR",
 		"--", // end of options: a path starting with "-" can't be parsed as an scp flag
 		localPath,
 		fmt.Sprintf("%s@%s:%s", e.user, instanceIP, remotePath),
-	}
+	)
 
 	// Execute SCP with context
 	cmd := exec.CommandContext(ctx, "scp", scpArgs...) //nolint:gosec // G204: fixed binary with argv (no shell), options terminated with "--"
@@ -163,21 +158,19 @@ func (e *SSHRemoteExecutor) CopyFile(ctx context.Context, instanceName string, l
 // GetFile copies a file from remote instance to local via SCP
 func (e *SSHRemoteExecutor) GetFile(ctx context.Context, instanceName string, remotePath, localPath string) error {
 	// Get instance IP
-	instanceIP, err := e.getInstanceIP(instanceName)
+	instanceIP, instanceID, err := e.getInstanceIP(instanceName)
 	if err != nil {
 		return fmt.Errorf("failed to get instance IP: %w", err)
 	}
 
 	// Build SCP command
-	scpArgs := []string{
-		"-i", e.keyPath,
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "UserKnownHostsFile=/dev/null",
+	scpArgs := append([]string{"-i", e.keyPath}, sshhostkeys.Options(instanceID)...) // verify the host key (accept on first use)
+	scpArgs = append(scpArgs,
 		"-o", "LogLevel=ERROR",
 		"--", // end of options: a path starting with "-" can't be parsed as an scp flag
 		fmt.Sprintf("%s@%s:%s", e.user, instanceIP, remotePath),
 		localPath,
-	}
+	)
 
 	// Execute SCP with context
 	cmd := exec.CommandContext(ctx, "scp", scpArgs...) //nolint:gosec // G204: fixed binary with argv (no shell), options terminated with "--"
@@ -203,23 +196,24 @@ func scriptCommand(script string) string {
 	return fmt.Sprintf("cat > /tmp/prism-script.sh << '%s'\n%s\n%s\nchmod +x /tmp/prism-script.sh\n/tmp/prism-script.sh\nrm -f /tmp/prism-script.sh", delim, script, delim)
 }
 
-// getInstanceIP gets the IP address for an instance from Prism state
-func (e *SSHRemoteExecutor) getInstanceIP(instanceName string) (string, error) {
+// getInstanceIP gets the public IP and the instance ID (which keys its host-key check) from Prism
+// state.
+func (e *SSHRemoteExecutor) getInstanceIP(instanceName string) (ip, id string, err error) {
 	if e.stateManager == nil {
-		return "", fmt.Errorf("SSH executor has no state manager to look up instance %s", instanceName)
+		return "", "", fmt.Errorf("SSH executor has no state manager to look up instance %s", instanceName)
 	}
 	currentState, err := e.stateManager.LoadState()
 	if err != nil {
-		return "", fmt.Errorf("failed to load state: %w", err)
+		return "", "", fmt.Errorf("failed to load state: %w", err)
 	}
 	instance, exists := currentState.Instances[instanceName]
 	if !exists {
-		return "", fmt.Errorf("instance %s not found in state", instanceName)
+		return "", "", fmt.Errorf("instance %s not found in state", instanceName)
 	}
 	if instance.PublicIP == "" {
-		return "", fmt.Errorf("instance %s has no public IP", instanceName)
+		return "", "", fmt.Errorf("instance %s has no public IP", instanceName)
 	}
-	return instance.PublicIP, nil
+	return instance.PublicIP, instance.ID, nil
 }
 
 // SystemsManagerExecutor implements RemoteExecutor using AWS Systems Manager

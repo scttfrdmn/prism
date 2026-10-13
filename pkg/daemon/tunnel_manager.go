@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/scttfrdmn/prism/pkg/sshhostkeys"
 	"github.com/scttfrdmn/prism/pkg/types"
 )
 
@@ -24,6 +25,7 @@ type TunnelManager struct {
 // SSHTunnel represents an active SSH tunnel
 type SSHTunnel struct {
 	InstanceName string
+	InstanceID   string // keys the host-key check (sshhostkeys)
 	ServiceName  string
 	RemotePort   int
 	LocalPort    int
@@ -86,6 +88,7 @@ func (tm *TunnelManager) CreateTunnel(instance *types.Instance, service types.Se
 
 	tunnel := &SSHTunnel{
 		InstanceName: instance.Name,
+		InstanceID:   instance.ID,
 		ServiceName:  service.Name,
 		RemotePort:   service.Port,
 		LocalPort:    localPort,
@@ -105,8 +108,9 @@ func (tm *TunnelManager) CreateTunnel(instance *types.Instance, service types.Se
 	args := []string{
 		"-N",                                                          // No command, just forward
 		"-L", fmt.Sprintf("%d:localhost:%d", localPort, service.Port), // Local port forwarding
-		"-o", "StrictHostKeyChecking=no", // Auto-accept host key
-		"-o", "UserKnownHostsFile=/dev/null", // Don't save host key
+	}
+	args = append(args, sshhostkeys.Options(instance.ID)...) // verify the host key (accept on first use)
+	args = append(args,
 		"-o", "BatchMode=yes", // Never prompt for password/passphrase
 		"-o", "ConnectTimeout=10", // Timeout after 10 seconds
 		"-o", "ServerAliveInterval=60", // Keep connection alive
@@ -114,7 +118,7 @@ func (tm *TunnelManager) CreateTunnel(instance *types.Instance, service types.Se
 		"-i", keyPath, // SSH key
 		"--", // end of ssh options: a username starting with "-" is not parsed as a flag
 		fmt.Sprintf("%s@%s", tunnel.Username, tunnel.PublicIP), // Connection
-	}
+	)
 
 	fmt.Printf("[DEBUG] Creating SSH tunnel: ssh %s\n", strings.Join(args, " "))
 
@@ -380,15 +384,13 @@ func (tm *TunnelManager) extractJupyterToken(instance *types.Instance, tunnel *S
 	// - jupyter server list output
 
 	// Use SSH to run jupyter server list command
-	args := []string{
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "UserKnownHostsFile=/dev/null",
+	args := append(sshhostkeys.Options(tunnel.InstanceID),
 		"-o", "ConnectTimeout=5",
 		"-i", tunnel.KeyPath,
 		"--", // end of ssh options: a username starting with "-" is not parsed as a flag
 		fmt.Sprintf("%s@%s", tunnel.Username, tunnel.PublicIP),
 		"jupyter", "server", "list", "2>/dev/null", "||", "jupyter", "notebook", "list", "2>/dev/null",
-	}
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

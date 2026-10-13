@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/scttfrdmn/prism/pkg/sshhostkeys"
 	"github.com/scttfrdmn/prism/pkg/types"
 )
 
@@ -109,16 +110,14 @@ func (m *LaunchProgressMonitor) isSSHAvailable(ctx context.Context) bool {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "ssh", //nolint:gosec // G204: fixed ssh binary, args are argv; remote command is a fixed literal
+	cmd := exec.CommandContext(ctx, "ssh", append(sshhostkeys.Options(m.instance.ID), //nolint:gosec // G204: fixed ssh binary, args are argv; remote command is a fixed literal
 		"-o", "ConnectTimeout=3",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
 		"-i", m.sshKeyPath,
 		"--", // end of ssh options: a username starting with "-" is not parsed as a flag
 		fmt.Sprintf("%s@%s", m.username, m.instance.PublicIP),
 		"echo ready",
-	)
+	)...)
 
 	output, err := cmd.CombinedOutput()
 	return err == nil && strings.TrimSpace(string(output)) == "ready"
@@ -129,16 +128,14 @@ func (m *LaunchProgressMonitor) checkCloudInitStatus(ctx context.Context) (*Clou
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "ssh", //nolint:gosec // G204: fixed ssh binary, args are argv; remote command is a fixed literal
+	cmd := exec.CommandContext(ctx, "ssh", append(sshhostkeys.Options(m.instance.ID), //nolint:gosec // G204: fixed ssh binary, args are argv; remote command is a fixed literal
 		"-o", "ConnectTimeout=5",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
 		"-i", m.sshKeyPath,
 		"--", // end of ssh options: a username starting with "-" is not parsed as a flag
 		fmt.Sprintf("%s@%s", m.username, m.instance.PublicIP),
 		"cloud-init status 2>/dev/null || echo 'status: unknown'",
-	)
+	)...)
 
 	output, err := cmd.Output()
 	if err != nil {
@@ -173,16 +170,14 @@ func (m *LaunchProgressMonitor) parseProgressMarkers(ctx context.Context) error 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "ssh", //nolint:gosec // G204: fixed ssh binary, args are argv; remote command is a fixed literal
+	cmd := exec.CommandContext(ctx, "ssh", append(sshhostkeys.Options(m.instance.ID), //nolint:gosec // G204: fixed ssh binary, args are argv; remote command is a fixed literal
 		"-o", "ConnectTimeout=5",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
 		"-i", m.sshKeyPath,
 		"--", // end of ssh options: a username starting with "-" is not parsed as a flag
 		fmt.Sprintf("%s@%s", m.username, m.instance.PublicIP),
 		"tail -100 /var/log/prism-setup.log 2>/dev/null | grep 'PRISM-PROGRESS' || echo 'NOTREADY'",
-	)
+	)...)
 
 	output, err := cmd.Output()
 	if err != nil {
