@@ -136,64 +136,48 @@ func (ic *InstanceCommands) createWebServiceTunnels(name string) {
 	}
 }
 
-// getConnectionInfo retrieves and optionally modifies connection info
-func (ic *InstanceCommands) getConnectionInfo(name, userOverride string, verbose bool) (string, error) {
-	connectionInfo, err := ic.app.apiClient.ConnectInstance(ic.app.ctx, name)
+// getSSHConnection retrieves the instance SSH endpoint and applies any --user override
+func (ic *InstanceCommands) getSSHConnection(name, userOverride string, verbose bool) (*types.SSHConnection, error) {
+	conn, err := ic.app.apiClient.GetSSHConnection(ic.app.ctx, name)
 	if err != nil {
-		return "", WrapAPIError("get connection info for "+name, err)
+		return nil, WrapAPIError("get connection info for "+name, err)
 	}
 
 	if userOverride != "" {
-		// The connection string is executed via `sh -c`, so the override must
-		// not contain shell metacharacters.
+		// ssh receives this as an argument (after "--"), never through a shell; the check keeps
+		// it a conventional login name.
 		if !sshUsernamePattern.MatchString(userOverride) {
-			return "", fmt.Errorf("invalid username %q: must start with a letter or underscore and contain only letters, digits, '_', '.', or '-'", userOverride)
+			return nil, fmt.Errorf("invalid username %q: must start with a letter or underscore and contain only letters, digits, '_', '.', or '-'", userOverride)
 		}
-		connectionInfo = ic.applyUsernameOverride(connectionInfo, userOverride, verbose)
+		conn.User = userOverride
+		if verbose {
+			fmt.Printf("🔧 Username overridden: %s\n", userOverride)
+		}
 	}
 
-	return connectionInfo, nil
+	return conn, nil
 }
 
 // sshUsernamePattern matches a conventional POSIX login name.
 var sshUsernamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.-]{0,31}$`)
 
-// applyUsernameOverride replaces username in SSH connection string
-func (ic *InstanceCommands) applyUsernameOverride(connectionInfo, userOverride string, verbose bool) string {
-	parts := strings.Fields(connectionInfo)
-	for _, part := range parts {
-		if _, host, found := strings.Cut(part, "@"); found {
-			hostPart := "@" + host
-			connectionInfo = strings.Replace(connectionInfo, part, userOverride+hostPart, 1)
-			if verbose {
-				fmt.Printf("🔧 Username overridden: %s\n", userOverride)
-			}
-			break
-		}
-	}
-	return connectionInfo
-}
-
 // executeConnection executes or displays connection info
-func (ic *InstanceCommands) executeConnection(connectionInfo, name string, verbose bool) error {
+func (ic *InstanceCommands) executeConnection(conn *types.SSHConnection, name string, verbose bool) error {
 	if verbose {
 		fmt.Printf("🔗 SSH command for %s:\n", name)
-		fmt.Printf("%s\n", connectionInfo)
+		fmt.Printf("%s\n", conn.String())
 		return nil
 	}
-	return ic.app.executeSSHCommand(connectionInfo, name)
+	return ic.app.executeSSHCommand(conn, name)
 }
 
 // connectSSHInstance handles SSH connections
 func (ic *InstanceCommands) connectSSHInstance(instance *types.Instance, name, userOverride string, verbose bool) error {
-	// Get connection info
-	connectionInfo, err := ic.getConnectionInfo(name, userOverride, verbose)
+	conn, err := ic.getSSHConnection(name, userOverride, verbose)
 	if err != nil {
 		return err
 	}
-
-	// Execute or display connection
-	return ic.executeConnection(connectionInfo, name, verbose)
+	return ic.executeConnection(conn, name, verbose)
 }
 
 // connectWebInstance handles web-based connections

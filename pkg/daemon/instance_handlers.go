@@ -15,6 +15,7 @@ import (
 	"github.com/scttfrdmn/prism/pkg/profile"
 	"github.com/scttfrdmn/prism/pkg/project"
 	"github.com/scttfrdmn/prism/pkg/rbac"
+	"github.com/scttfrdmn/prism/pkg/sshhostkeys"
 	"github.com/scttfrdmn/prism/pkg/templates"
 	"github.com/scttfrdmn/prism/pkg/types"
 )
@@ -998,6 +999,10 @@ func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request, id
 		// Update local state with real AWS state (shutting-down or terminated)
 		if updatedInstance != nil {
 			_ = s.stateManager.SaveInstance(*updatedInstance)
+			// The instance is being terminated; drop its recorded SSH host key.
+			if err := sshhostkeys.Forget(updatedInstance.ID); err != nil {
+				log.Printf("Warning: Failed to forget host key of %s: %v", logSafe(instanceName), err) //nolint:gosec // G706: instanceName is CR/LF-escaped by logSafe, which the taint analysis does not recognise
+			}
 		}
 
 		w.WriteHeader(http.StatusNoContent)
@@ -1362,20 +1367,22 @@ func (s *Server) handleConnectInstance(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 
-	var connectionInfo string
+	var conn *types.SSHConnection
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
 		var err error
-		connectionInfo, err = awsManager.GetConnectionInfo(instanceName)
+		conn, err = awsManager.GetSSHConnection(instanceName)
 		return err
 	})
 
-	if connectionInfo == "" {
+	if conn == nil {
 		// Error was already handled by withAWSManager
 		return
 	}
 
 	response := map[string]interface{}{
-		"connection_info": connectionInfo,
+		// connection_info is for display; clients execute the structured "ssh" form (#740).
+		"connection_info": conn.String(),
+		"ssh":             conn,
 	}
 
 	// Augment response with DCV-specific fields for desktop instances

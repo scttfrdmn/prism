@@ -93,6 +93,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   storing to the file fails with that guidance instead of writing a derivable
   ciphertext. Files in the old format are still read and are re-encrypted on
   first read when a key source is available.
+- **SSH host keys are verified (#739).** Every ssh/scp call (port-forwarding
+  tunnels, launch-progress probes, Jupyter token lookup, template application)
+  used `StrictHostKeyChecking=no` with `UserKnownHostsFile=/dev/null`, so
+  anyone in the network path, or holding a recycled public IP, could
+  impersonate an instance. Host keys are now recorded on first use and checked
+  on every later connection, in `~/.prism/ssh_known_hosts` (new package
+  `pkg/sshhostkeys`). They're keyed by instance ID via `HostKeyAlias`, not by
+  IP, because EC2 reuses public IPs. Deleting an instance, or the state monitor
+  seeing it terminated, removes its key. The unreachable
+  `internal/cli/idle_configure.go` (never registered as a command, with an
+  instance lookup that could not match the real client) is removed rather than
+  fixed.
+- **`prism workspace connect` no longer runs a shell (#740).** The CLI executed
+  the daemon's SSH connection string with `sh -c`, so a shell metacharacter in
+  any part of it (user, IP, key path from instance state) would have run
+  locally. The connect API now also returns the endpoint in structured form
+  (`ssh: {user, host, port, key_path}`). The CLI runs `ssh` with an argument
+  vector ending `--`, user@host. The GUI's "open terminal" can't avoid a shell
+  (terminal emulators run one), so it validates the values (POSIX login name,
+  plain IP or hostname, port) and quotes every argument. `connection_info`
+  remains for display. The client no longer decodes the connect response into a
+  string map, which failed on desktop instances' numeric `dcv_port`.
 - **Cross-site WebSocket hijacking closed.** The GUI's terminal server
   (`127.0.0.1:8948`, no other authentication) accepted WebSocket handshakes
   from any origin and hands out SSH sessions, so any web page the user visited
