@@ -1259,21 +1259,18 @@ func (a *App) Exec(args []string) error {
 	return a.instanceCommands.Exec(args)
 }
 
-// executeSSHCommand executes the SSH command and transfers control to the SSH process
-func (a *App) executeSSHCommand(connectionInfo, instanceName string) error {
+// executeSSHCommand runs ssh for an interactive session and hands it the terminal. It passes an
+// argument vector -- no shell parses the user, host or key path (#740).
+func (a *App) executeSSHCommand(conn *types.SSHConnection, instanceName string) error {
 	fmt.Printf("🔗 Connecting to %s...\n", instanceName)
 
 	// In test mode, skip actual SSH execution
 	if a.testMode {
-		fmt.Printf("Test mode: would execute: %s\n", connectionInfo)
+		fmt.Printf("Test mode: would execute: %s\n", conn.String())
 		return nil
 	}
 
-	// Use shell to execute the SSH command to handle quotes properly
-	// connectionInfo is built by the local daemon (fixed "ssh" command with
-	// instance IP/key path); the only user-supplied part, --user, is validated
-	// against sshUsernamePattern in getConnectionInfo.
-	cmd := exec.Command("sh", "-c", connectionInfo) //nolint:gosec // G204: command string comes from the local daemon; user-supplied username is validated
+	cmd := exec.Command("ssh", conn.Args()...) //nolint:gosec // G204: fixed ssh binary; args are an argv vector ending "--", user@host -- no shell
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

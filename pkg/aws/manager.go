@@ -1483,10 +1483,20 @@ func (m *Manager) GetInstanceHibernationStatus(name string) (bool, string, bool,
 
 // GetConnectionInfo returns connection information for an instance with SSH key path
 func (m *Manager) GetConnectionInfo(name string) (string, error) {
+	conn, err := m.GetSSHConnection(name)
+	if err != nil {
+		return "", err
+	}
+	return conn.String(), nil
+}
+
+// GetSSHConnection returns the instance's SSH endpoint in structured form, for clients to run ssh
+// with an argument vector rather than a shell string (#740).
+func (m *Manager) GetSSHConnection(name string) (*ctypes.SSHConnection, error) {
 	// Find instance by name tag
 	instanceID, err := m.findInstanceByName(name)
 	if err != nil {
-		return "", fmt.Errorf("failed to find instance: %w", err)
+		return nil, fmt.Errorf("failed to find instance: %w", err)
 	}
 
 	ctx := context.Background()
@@ -1495,29 +1505,26 @@ func (m *Manager) GetConnectionInfo(name string) (string, error) {
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to describe instance: %w", err)
+		return nil, fmt.Errorf("failed to describe instance: %w", err)
 	}
 
 	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
-		return "", fmt.Errorf("instance not found")
+		return nil, fmt.Errorf("instance not found")
 	}
 
 	instance := result.Reservations[0].Instances[0]
 
 	if instance.PublicIpAddress == nil {
-		return "", fmt.Errorf("instance has no public IP address")
+		return nil, fmt.Errorf("instance has no public IP address")
 	}
 
-	// Get SSH key information
-	sshKeyInfo := ""
+	conn := &ctypes.SSHConnection{User: "ubuntu", Host: *instance.PublicIpAddress}
 	if instance.KeyName != nil {
-		keyPath, err := m.getSSHKeyPathFromKeyName(*instance.KeyName)
-		if err == nil {
-			sshKeyInfo = fmt.Sprintf(" -i \"%s\"", keyPath)
+		if keyPath, err := m.getSSHKeyPathFromKeyName(*instance.KeyName); err == nil {
+			conn.KeyPath = keyPath
 		}
 	}
-
-	return fmt.Sprintf("ssh%s ubuntu@%s", sshKeyInfo, *instance.PublicIpAddress), nil
+	return conn, nil
 }
 
 // CreateVolume creates a new EFS volume

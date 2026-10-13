@@ -4,6 +4,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/scttfrdmn/prism/pkg/api/client"
@@ -554,6 +555,17 @@ func (m *MockAPIClient) ConnectInstance(ctx context.Context, name string) (strin
 	}
 
 	return "", fmt.Errorf("instance %s not found", name)
+}
+
+// GetSSHConnection returns the structured SSH endpoint, with the same call recording and
+// running-state rules as ConnectInstance (the CLI's connect path uses this).
+func (m *MockAPIClient) GetSSHConnection(ctx context.Context, name string) (*types.SSHConnection, error) {
+	info, err := m.ConnectInstance(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	_, host, _ := strings.Cut(info, "@")
+	return &types.SSHConnection{User: "user", Host: host}, nil
 }
 
 // Template operations

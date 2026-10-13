@@ -171,6 +171,10 @@ func (m *MockClient) ConnectInstance(ctx context.Context, name string) (string, 
 	return "ssh mock@mock-ip", nil
 }
 
+func (m *MockClient) GetSSHConnection(ctx context.Context, name string) (*types.SSHConnection, error) {
+	return &types.SSHConnection{User: "mock", Host: "mock-ip"}, nil
+}
+
 func (m *MockClient) ExecInstance(ctx context.Context, instanceName string, execRequest types.ExecRequest) (*types.ExecResult, error) {
 	return &types.ExecResult{
 		Command:       execRequest.Command,

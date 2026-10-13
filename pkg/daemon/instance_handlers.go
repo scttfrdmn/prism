@@ -1362,20 +1362,22 @@ func (s *Server) handleConnectInstance(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 
-	var connectionInfo string
+	var conn *types.SSHConnection
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
 		var err error
-		connectionInfo, err = awsManager.GetConnectionInfo(instanceName)
+		conn, err = awsManager.GetSSHConnection(instanceName)
 		return err
 	})
 
-	if connectionInfo == "" {
+	if conn == nil {
 		// Error was already handled by withAWSManager
 		return
 	}
 
 	response := map[string]interface{}{
-		"connection_info": connectionInfo,
+		// connection_info is for display; clients execute the structured "ssh" form (#740).
+		"connection_info": conn.String(),
+		"ssh":             conn,
 	}
 
 	// Augment response with DCV-specific fields for desktop instances

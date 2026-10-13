@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // AccessType represents the type of instance access
@@ -126,8 +128,13 @@ func (s *PrismService) OpenTerminal(ctx context.Context, instanceName string) er
 		return fmt.Errorf("no SSH access available for instance %s", instanceName)
 	}
 
-	sshCommand := fmt.Sprintf("ssh %s@%s -p %d", access.Username, access.PublicIP, access.SSHPort)
-	cmd, err := s.createTerminalCommand(sshCommand)
+	// The terminal emulator runs this through a shell (Terminal.app, cmd.exe, bash -c), so the
+	// values come from instance state are validated and every argument is quoted (#740).
+	conn := types.SSHConnection{User: access.Username, Host: access.PublicIP, Port: access.SSHPort}
+	if err := conn.Validate(); err != nil {
+		return fmt.Errorf("refusing to open a terminal for %s: %w", instanceName, err)
+	}
+	cmd, err := s.createTerminalCommand(conn.ShellCommand())
 	if err != nil {
 		return err
 	}
