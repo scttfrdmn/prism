@@ -2,9 +2,11 @@
 package profile
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,6 +19,7 @@ import (
 	"github.com/zalando/go-keyring"
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/scrypt"
 )
 
 // Credentials holds AWS credentials data
@@ -283,31 +286,93 @@ func (p *SecureCredentialProvider) removeFromSecretService(profileName string) e
 }
 
 // Local file fallback implementations with NaCl secretbox encryption
+//
+// The fallback file is used only when the OS keychain can't hold the credentials themselves. Its
+// key is never derived from public data (#738): the original scheme used PBKDF2 over the home
+// directory path and service name with a static salt, so anyone who could read a .creds file could
+// derive the key -- obfuscation, not encryption. Files in that legacy format are still read, and
+// rewritten in the current format on first read. The key is now one of:
+//
+//   - a random 256-bit key held in the OS keychain (mode 'k'), or
+//   - a key stretched by scrypt, with a per-file random salt, from a passphrase the user supplies
+//     in PRISM_CREDENTIALS_PASSPHRASE (mode 'p') -- for headless hosts with no keychain.
+//
+// With neither available, storing to the file fails rather than writing a derivable ciphertext.
+//
+// File format: credFileMagic | mode byte | [16-byte salt if mode 'p'] | 24-byte nonce | ciphertext.
 
 const nonceSize = 24
 const keySize = 32
 
-// getEncryptionKey derives an encryption key for the credentials file
-// This uses a combination of machine-specific data and user home directory
-func (p *SecureCredentialProvider) getEncryptionKey() ([keySize]byte, error) {
-	var key [keySize]byte
+const (
+	credFileMagic                  = "PRISMCRED2" //nolint:gosec // G101: file-format marker, not a credential
+	keyModeKeychain           byte = 'k'
+	keyModePassphrase         byte = 'p'
+	passphraseSaltSize             = 16
+	credentialsPassEnv             = "PRISM_CREDENTIALS_PASSPHRASE" //nolint:gosec // G101: name of the environment variable, not a credential
+	credentialsFileKeyAccount      = "credentials-file-key"
+)
 
-	// Get user home directory as part of the key derivation
+// keychainFileKey returns the random file-encryption key held in the OS keychain, creating it when
+// create is set and none exists yet.
+func (p *SecureCredentialProvider) keychainFileKey(create bool) ([keySize]byte, error) {
+	var key [keySize]byte
+	stored, err := keyring.Get(p.service, credentialsFileKeyAccount)
+	if err == nil {
+		raw, decodeErr := hex.DecodeString(stored)
+		if decodeErr != nil || len(raw) != keySize {
+			return key, fmt.Errorf("credentials file key in the keychain is malformed")
+		}
+		copy(key[:], raw)
+		return key, nil
+	}
+	if !create || err != keyring.ErrNotFound {
+		return key, fmt.Errorf("keychain unavailable: %w", err)
+	}
+	if _, err := io.ReadFull(rand.Reader, key[:]); err != nil {
+		return key, fmt.Errorf("failed to generate credentials file key: %w", err)
+	}
+	if err := keyring.Set(p.service, credentialsFileKeyAccount, hex.EncodeToString(key[:])); err != nil {
+		return key, fmt.Errorf("keychain unavailable: %w", err)
+	}
+	return key, nil
+}
+
+// passphraseFileKey stretches the user's passphrase into a file key with scrypt.
+func passphraseFileKey(passphrase string, salt []byte) ([keySize]byte, error) {
+	var key [keySize]byte
+	derived, err := scrypt.Key([]byte(passphrase), salt, 1<<15, 8, 1, keySize)
+	if err != nil {
+		return key, fmt.Errorf("failed to derive key from %s: %w", credentialsPassEnv, err)
+	}
+	copy(key[:], derived)
+	return key, nil
+}
+
+// legacyEncryptionKey is the derivable key of the original file format. It is used only to read
+// files written before #738 so they can be migrated.
+func (p *SecureCredentialProvider) legacyEncryptionKey() ([keySize]byte, error) {
+	var key [keySize]byte
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return key, fmt.Errorf("failed to get home directory: %w", err)
 	}
-
-	// Use PBKDF2 key derivation function with home directory and service name
-	// This provides cryptographically secure key derivation
-	password := []byte(homeDir + p.service)
-	salt := []byte("prism-v1") // Static salt for deterministic keys
-
-	// Use PBKDF2 with SHA-256, 100000 iterations (OWASP recommendation)
-	derivedKey := pbkdf2.Key(password, salt, 100000, 32, sha256.New)
+	derivedKey := pbkdf2.Key([]byte(homeDir+p.service), []byte("prism-v1"), 100000, 32, sha256.New)
 	copy(key[:], derivedKey)
-
 	return key, nil
+}
+
+func openSealed(data []byte, key *[keySize]byte) ([]byte, error) {
+	if len(data) < nonceSize {
+		return nil, fmt.Errorf("invalid encrypted data: too short")
+	}
+	var nonce [nonceSize]byte
+	copy(nonce[:], data[:nonceSize])
+	plaintext, ok := secretbox.Open(nil, data[nonceSize:], &nonce, key)
+	if !ok {
+		return nil, fmt.Errorf("failed to decrypt credentials")
+	}
+	return plaintext, nil
 }
 
 func (p *SecureCredentialProvider) getFromFile(profileName string) (*Credentials, error) {
@@ -322,31 +387,60 @@ func (p *SecureCredentialProvider) getFromFile(profileName string) (*Credentials
 		return nil, fmt.Errorf("failed to read credentials file: %w", err)
 	}
 
-	// Get encryption key
-	key, err := p.getEncryptionKey()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get encryption key: %w", err)
-	}
-
-	// Extract nonce and ciphertext
-	if len(encryptedData) < nonceSize {
-		return nil, fmt.Errorf("invalid encrypted data: too short")
-	}
-
-	var nonce [nonceSize]byte
-	copy(nonce[:], encryptedData[:nonceSize])
-	ciphertext := encryptedData[nonceSize:]
-
-	// Decrypt using NaCl secretbox
-	plaintext, ok := secretbox.Open(nil, ciphertext, &nonce, &key)
-	if !ok {
-		return nil, fmt.Errorf("failed to decrypt credentials")
+	var plaintext []byte
+	legacy := !bytes.HasPrefix(encryptedData, []byte(credFileMagic))
+	if legacy {
+		key, err := p.legacyEncryptionKey()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get encryption key: %w", err)
+		}
+		if plaintext, err = openSealed(encryptedData, &key); err != nil {
+			return nil, err
+		}
+	} else {
+		rest := encryptedData[len(credFileMagic):]
+		if len(rest) < 1 {
+			return nil, fmt.Errorf("invalid encrypted data: too short")
+		}
+		mode, rest := rest[0], rest[1:]
+		var key [keySize]byte
+		switch mode {
+		case keyModeKeychain:
+			if key, err = p.keychainFileKey(false); err != nil {
+				return nil, fmt.Errorf("credentials for %s are encrypted with a key held in the OS keychain, which is not readable: %w", profileName, err)
+			}
+		case keyModePassphrase:
+			passphrase := os.Getenv(credentialsPassEnv)
+			if passphrase == "" {
+				return nil, fmt.Errorf("credentials for %s are passphrase-encrypted: set %s", profileName, credentialsPassEnv)
+			}
+			if len(rest) < passphraseSaltSize {
+				return nil, fmt.Errorf("invalid encrypted data: too short")
+			}
+			if key, err = passphraseFileKey(passphrase, rest[:passphraseSaltSize]); err != nil {
+				return nil, err
+			}
+			rest = rest[passphraseSaltSize:]
+		default:
+			return nil, fmt.Errorf("invalid encrypted data: unknown key mode %q", mode)
+		}
+		if plaintext, err = openSealed(rest, &key); err != nil {
+			return nil, err
+		}
 	}
 
 	// Decode JSON credentials
 	var creds Credentials
 	if err := json.Unmarshal(plaintext, &creds); err != nil {
 		return nil, fmt.Errorf("failed to decode credentials: %w", err)
+	}
+
+	if legacy {
+		// Rewrite with a key that can't be derived. If no such key is available yet (no keychain,
+		// no passphrase), keep the readable legacy file and say why it wasn't migrated.
+		if err := p.storeInFile(profileName, &creds); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: credentials for %s use the old, weakly protected file format and could not be re-encrypted: %v\n", profileName, err)
+		}
 	}
 
 	return &creds, nil
@@ -361,10 +455,23 @@ func (p *SecureCredentialProvider) storeInFile(profileName string, creds *Creden
 		return fmt.Errorf("failed to encode credentials: %w", err)
 	}
 
-	// Get encryption key
-	key, err := p.getEncryptionKey()
-	if err != nil {
-		return fmt.Errorf("failed to get encryption key: %w", err)
+	// Choose the key: an explicit passphrase wins; otherwise a random key held in the keychain.
+	header := []byte(credFileMagic)
+	var key [keySize]byte
+	if passphrase := os.Getenv(credentialsPassEnv); passphrase != "" {
+		salt := make([]byte, passphraseSaltSize)
+		if _, err := io.ReadFull(rand.Reader, salt); err != nil {
+			return fmt.Errorf("failed to generate salt: %w", err)
+		}
+		if key, err = passphraseFileKey(passphrase, salt); err != nil {
+			return err
+		}
+		header = append(append(header, keyModePassphrase), salt...)
+	} else {
+		if key, err = p.keychainFileKey(true); err != nil {
+			return fmt.Errorf("no secure key storage for the credentials file (%w); set %s to encrypt it with a passphrase, or use AWS CLI profiles", err, credentialsPassEnv)
+		}
+		header = append(header, keyModeKeychain)
 	}
 
 	// Generate random nonce
@@ -374,10 +481,8 @@ func (p *SecureCredentialProvider) storeInFile(profileName string, creds *Creden
 	}
 
 	// Encrypt using NaCl secretbox
-	ciphertext := secretbox.Seal(nil, plaintext, &nonce, &key)
-
-	// Combine nonce and ciphertext
-	encryptedData := append(nonce[:], ciphertext...)
+	header = append(header, nonce[:]...)
+	encryptedData := secretbox.Seal(header, plaintext, &nonce, &key)
 
 	// Write to file with restrictive permissions
 	if err := os.WriteFile(credFile, encryptedData, 0600); err != nil {
