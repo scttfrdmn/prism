@@ -232,7 +232,7 @@ func (r *ExponentialBackoff) calculateBackoff(attempt int) time.Duration {
 	}
 
 	// Add jitter (random variation)
-	jitter := exponentialDelay * r.jitterRatio * (rand.Float64() - 0.5) * 2
+	jitter := exponentialDelay * r.jitterRatio * (rand.Float64() - 0.5) * 2 //nolint:gosec // G404: retry backoff jitter is not security-sensitive
 	finalDelay := exponentialDelay + jitter
 
 	// Ensure positive delay

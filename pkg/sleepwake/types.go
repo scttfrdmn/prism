@@ -193,7 +193,7 @@ func (s *State) Save() error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(s.StateFilePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return err
 	}
 
@@ -202,7 +202,7 @@ func (s *State) Save() error {
 		return err
 	}
 
-	return os.WriteFile(s.StateFilePath, data, 0644)
+	return os.WriteFile(s.StateFilePath, data, 0600)
 }
 
 // AddHibernatedInstance records that an instance was hibernated

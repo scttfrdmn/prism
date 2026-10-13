@@ -107,10 +107,7 @@ func TestThrottlingExponentialBackoff(t *testing.T) {
 
 	operation := func(ctx context.Context) error {
 		attempt := atomic.AddInt32(&attemptCount, 1)
-		if attempt > 1 {
-			// Record time between attempts (backoff delay)
-			// This is approximate since we measure total elapsed time
-		}
+		// Backoff delays are verified via total elapsed time below.
 		if attempt <= 3 {
 			return &MockError{Message: "Throttling: Rate exceeded"}
 		}

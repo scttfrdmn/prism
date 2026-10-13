@@ -150,7 +150,7 @@ func refToKey(ref TemplateReference) string {
 // readTemplateDependencies reads a template file and extracts its dependencies
 func (m *Manager) readTemplateDependencies(templatePath string, defaultRepo string) ([]TemplateReference, error) {
 	// Read template file
-	data, err := os.ReadFile(templatePath)
+	data, err := os.ReadFile(templatePath) //nolint:gosec // G304: template path resolved from the local repository cache (getTemplatePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read template file: %w", err)
 	}

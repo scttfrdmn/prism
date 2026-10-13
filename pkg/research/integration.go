@@ -359,7 +359,7 @@ func (rus *ResearchUserService) MigrateExistingUser(instanceIP, existingUser, ne
 			return fmt.Errorf("failed to connect to instance %s: %w", instanceIP, err)
 		}
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }() // teardown of SSH connection; nothing actionable on failure
 
 	steps := []struct {
 		desc string

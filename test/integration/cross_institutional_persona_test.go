@@ -43,7 +43,7 @@ import (
 // 7. Quarterly budget reviews across all institutions
 // 8. End of year: Multi-institutional reporting and compliance
 // 9. Grant renewal: Multi-year project continuation
-func TestCrossInstitutionalPersona_DrKim(t *testing.T) {
+func TestCrossInstitutionalPersona_DrKim(t *testing.T) { //nolint:gocognit // end-to-end persona scenario; linear narrative steps read better inline than split up
 	if testing.Short() {
 		t.Skip("Skipping cross-institutional persona test in short mode")
 	}

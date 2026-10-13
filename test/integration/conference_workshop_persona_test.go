@@ -40,7 +40,7 @@ import (
 // 6. Day 3 evening: Workshop ends, automatic cleanup scheduled
 // 7. Day 4: Automated termination of all workshop resources
 // 8. Post-workshop: Usage report and feedback collection
-func TestConferenceWorkshopPersona_DrPatel(t *testing.T) {
+func TestConferenceWorkshopPersona_DrPatel(t *testing.T) { //nolint:gocognit // end-to-end persona scenario; linear narrative steps read better inline than split up
 	if testing.Short() {
 		t.Skip("Skipping conference workshop persona test in short mode")
 	}

@@ -190,7 +190,7 @@ func (pm *PerformanceMonitor) GetSummary() PerformanceSummary {
 		MemoryUsageMB: float64(m.HeapAlloc) / 1024 / 1024,
 		Goroutines:    runtime.NumGoroutine(),
 		GCCycles:      m.NumGC,
-		LastGCPause:   time.Duration(m.PauseNs[(m.NumGC+255)%256]),
+		LastGCPause:   time.Duration(m.PauseNs[(m.NumGC+255)%256]), //nolint:gosec // G115: GC pause in ns is far below MaxInt64 (~292 years)
 		MetricCount:   len(pm.metrics),
 	}
 

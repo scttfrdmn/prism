@@ -272,7 +272,6 @@ func TestBackup_MultipleBackups(t *testing.T) {
 		fmt.Sprintf("backup-v3-%s", instanceName),
 	}
 
-	createdBackups := make([]*types.BackupInfo, 0, 3)
 	for i, backupName := range backupNames {
 		t.Logf("   Creating backup %d/3: %s", i+1, backupName)
 		backup, err := fixtures.CreateTestBackup(t, registry, fixtures.CreateTestBackupOptions{
@@ -283,7 +282,6 @@ func TestBackup_MultipleBackups(t *testing.T) {
 		require.NoError(t, err, "Failed to create backup %d", i+1)
 		require.NotNil(t, backup, "Backup %d should not be nil", i+1)
 		require.Equal(t, "available", backup.State, "Backup %d should be available", i+1)
-		createdBackups = append(createdBackups, backup)
 		t.Logf("   ✓ Backup %d/%d created: %s", i+1, 3, backupName)
 	}
 

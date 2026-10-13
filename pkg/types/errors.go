@@ -32,7 +32,7 @@ const (
 	ErrQuotaExceeded  ErrorCode = "quota_exceeded"  // Account quota exceeded
 
 	// Authentication/authorization errors
-	ErrInvalidCredentials ErrorCode = "invalid_credentials" // Invalid login credentials
+	ErrInvalidCredentials ErrorCode = "invalid_credentials" //nolint:gosec // G101: error-code identifier, not a credential
 	ErrAccountDisabled    ErrorCode = "account_disabled"    // User account is disabled
 	ErrPermissionDenied   ErrorCode = "permission_denied"   // User lacks permission
 	ErrSessionExpired     ErrorCode = "session_expired"     // Session has expired

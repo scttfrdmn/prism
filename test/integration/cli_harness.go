@@ -65,8 +65,11 @@ func NewCLITestContext(t *testing.T) *CLITestContext {
 
 	// Add cleanup for directories
 	ctx.AddCleanup(func() {
-		os.RemoveAll(tempConfigDir)
-		os.RemoveAll(tempStateDir)
+		for _, dir := range []string{tempConfigDir, tempStateDir} {
+			if err := os.RemoveAll(dir); err != nil {
+				t.Logf("Warning: failed to remove %s: %v", dir, err)
+			}
+		}
 		t.Log("Cleaned up CLI test directories")
 	})
 
@@ -79,7 +82,7 @@ func (ctx *CLITestContext) Prism(args ...string) *CLIResult {
 	start := time.Now()
 
 	// Prepare command
-	cmd := exec.Command(ctx.PrismBin, args...)
+	cmd := exec.Command(ctx.PrismBin, args...) //nolint:gosec // G204: test harness runs the locally built prism binary with test-supplied args (no shell)
 
 	// Set environment with test configuration
 	env := os.Environ()

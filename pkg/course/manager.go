@@ -37,12 +37,12 @@ func NewManager() (*Manager, error) {
 	}
 
 	stateDir := filepath.Join(homeDir, ".prism")
-	if err := os.MkdirAll(stateDir, 0755); err != nil {
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}
 
 	auditDir := filepath.Join(stateDir, "course-audits")
-	if err := os.MkdirAll(auditDir, 0755); err != nil {
+	if err := os.MkdirAll(auditDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create audit directory: %w", err)
 	}
 

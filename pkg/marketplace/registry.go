@@ -4,6 +4,7 @@ package marketplace
 import (
 	"context"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"sync"
@@ -554,7 +555,7 @@ func (r *Registry) GetReviews(templateID string, pagination *ReviewPagination) (
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":templateID": &types.AttributeValueMemberS{Value: templateID},
 			},
-			Limit:            aws.Int32(int32(pagination.Limit)),
+			Limit:            aws.Int32(reviewQueryLimit(pagination.Limit)),
 			ScanIndexForward: aws.Bool(false), // Newest first
 		}
 
@@ -1267,4 +1268,17 @@ func DefaultCategories() []TemplateCategory {
 			Color:       "#FF7675",
 		},
 	}
+}
+
+// reviewQueryLimit converts a requested page size to a DynamoDB Limit.
+// Non-positive values use the default page size of 10 (DynamoDB rejects 0);
+// values beyond int32 are clamped.
+func reviewQueryLimit(limit int) int32 {
+	if limit <= 0 {
+		return 10
+	}
+	if limit > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	return int32(limit)
 }

@@ -227,9 +227,12 @@ func (skm *SSHKeyManager) ListKeyFingerprints(profileID, username string) ([]str
 // Private helper methods
 
 func (skm *SSHKeyManager) loadKeyConfig(profileID, username, keyID string) (*SSHKeyConfig, error) {
+	if err := checkPathComponents(profileID, username, keyID); err != nil {
+		return nil, err
+	}
 	configPath := skm.getKeyConfigPath(profileID, username, keyID)
 
-	data, err := os.ReadFile(configPath)
+	data, err := os.ReadFile(configPath) //nolint:gosec // G304: components validated by checkPathComponents; path is under the Prism config dir
 	if err != nil {
 		return nil, fmt.Errorf("failed to read key config: %w", err)
 	}
@@ -243,11 +246,14 @@ func (skm *SSHKeyManager) loadKeyConfig(profileID, username, keyID string) (*SSH
 }
 
 func (skm *SSHKeyManager) saveKeyConfig(profileID, username, keyID string, config *SSHKeyConfig) error {
+	if err := checkPathComponents(profileID, username, keyID); err != nil {
+		return err
+	}
 	configPath := skm.getKeyConfigPath(profileID, username, keyID)
 	configDir := filepath.Dir(configPath)
 
 	// Create directory if it doesn't exist
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -274,16 +280,19 @@ type FileKeyStore struct {
 
 // StorePublicKey stores a public key to the filesystem
 func (fks *FileKeyStore) StorePublicKey(profileID, username, keyID string, publicKey []byte) error {
+	if err := checkPathComponents(profileID, username, keyID); err != nil {
+		return err
+	}
 	keyPath := fks.getPublicKeyPath(profileID, username, keyID)
 	keyDir := filepath.Dir(keyPath)
 
 	// Create directory if it doesn't exist
-	if err := os.MkdirAll(keyDir, 0755); err != nil {
+	if err := os.MkdirAll(keyDir, 0700); err != nil {
 		return fmt.Errorf("failed to create key directory: %w", err)
 	}
 
 	// Write public key
-	if err := os.WriteFile(keyPath, publicKey, 0644); err != nil {
+	if err := os.WriteFile(keyPath, publicKey, 0644); err != nil { //nolint:gosec // G306: SSH public key is intentionally world-readable (like ~/.ssh/*.pub)
 		return fmt.Errorf("failed to write public key: %w", err)
 	}
 
@@ -292,6 +301,9 @@ func (fks *FileKeyStore) StorePublicKey(profileID, username, keyID string, publi
 
 // GetPublicKeys retrieves all public keys for a user
 func (fks *FileKeyStore) GetPublicKeys(profileID, username string) (map[string][]byte, error) {
+	if err := checkPathComponents(profileID, username); err != nil {
+		return nil, err
+	}
 	userDir := filepath.Join(fks.basePath, "ssh-keys", profileID, username)
 
 	entries, err := os.ReadDir(userDir)
@@ -311,7 +323,7 @@ func (fks *FileKeyStore) GetPublicKeys(profileID, username string) (map[string][
 		keyID := strings.TrimSuffix(entry.Name(), ".pub")
 		keyPath := filepath.Join(userDir, entry.Name())
 
-		publicKey, err := os.ReadFile(keyPath)
+		publicKey, err := os.ReadFile(keyPath) //nolint:gosec // G304: file name comes from os.ReadDir of the validated user key dir
 		if err != nil {
 			continue // Skip invalid keys
 		}
@@ -324,6 +336,9 @@ func (fks *FileKeyStore) GetPublicKeys(profileID, username string) (map[string][
 
 // DeletePublicKey removes a public key from storage
 func (fks *FileKeyStore) DeletePublicKey(profileID, username, keyID string) error {
+	if err := checkPathComponents(profileID, username, keyID); err != nil {
+		return err
+	}
 	keyPath := fks.getPublicKeyPath(profileID, username, keyID)
 	if err := os.Remove(keyPath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to delete public key: %w", err)
@@ -348,6 +363,17 @@ func (fks *FileKeyStore) ListKeyFingerprints(profileID, username string) ([]stri
 	}
 
 	return fingerprints, nil
+}
+
+// checkPathComponents rejects identifiers that would escape the key store
+// directory when joined into a file path (separators, ".", "..").
+func checkPathComponents(parts ...string) error {
+	for _, p := range parts {
+		if p == "." || p == ".." || strings.ContainsAny(p, `/\`) {
+			return fmt.Errorf("invalid path component %q", p)
+		}
+	}
+	return nil
 }
 
 func (fks *FileKeyStore) getPublicKeyPath(profileID, username, keyID string) string {

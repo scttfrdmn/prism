@@ -134,7 +134,7 @@ func NewApprovalManager() (*ApprovalManager, error) {
 	}
 
 	stateDir := filepath.Join(homeDir, ".prism")
-	if err := os.MkdirAll(stateDir, 0755); err != nil {
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}
 
@@ -166,7 +166,7 @@ func NewApprovalManagerForScope(store seam.Store[ApprovalRequest], scope seam.Sc
 // migrateLegacy imports a pre-seam flat approvals.json (map[id]*ApprovalRequest) into the store,
 // then renames it aside so the import runs once. Absent file → no-op.
 func (am *ApprovalManager) migrateLegacy(legacyPath string) error {
-	data, err := os.ReadFile(legacyPath)
+	data, err := os.ReadFile(legacyPath) //nolint:gosec // G304: legacy approvals.json path under ~/.prism, built by this package
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil

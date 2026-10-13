@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strings"
@@ -117,7 +118,7 @@ func (rp *ResearchUserProvisioner) GetResearchUserStatus(ctx context.Context, in
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to instance: %w", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }() // teardown of SSH connection; nothing actionable on failure
 
 	// Check if research user exists and get basic status
 	status, err := rp.checkUserExistence(client, username)
@@ -238,7 +239,7 @@ func (rp *ResearchUserProvisioner) executeProvisioningScript(ctx context.Context
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to instance: %w", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }() // teardown of SSH connection; nothing actionable on failure
 
 	// Create remote script file
 	scriptPath := fmt.Sprintf("/tmp/provision-research-user-%s.sh", req.ResearchUser.Username)
@@ -263,7 +264,9 @@ func (rp *ResearchUserProvisioner) executeProvisioningScript(ctx context.Context
 
 	// Clean up script
 	cleanupCmd := fmt.Sprintf("rm -f %s", scriptPath)
-	rp.executeCommand(client, cleanupCmd) // Ignore errors for cleanup
+	if _, err := rp.executeCommand(client, cleanupCmd); err != nil {
+		log.Printf("research: failed to remove provisioning script %s: %v", scriptPath, err)
+	}
 
 	// Parse output to determine success
 	success := !strings.Contains(strings.ToLower(output), "error") &&
@@ -289,7 +292,7 @@ func (rp *ResearchUserProvisioner) executeProvisioningScript(ctx context.Context
 // connectToInstance establishes an SSH connection to an instance
 func (rp *ResearchUserProvisioner) connectToInstance(host, user, keyPath string) (*ssh.Client, error) {
 	// Read private key
-	key, err := os.ReadFile(keyPath)
+	key, err := os.ReadFile(keyPath) //nolint:gosec // G304: local SSH private key path from the Prism profile/instance config
 	if err != nil {
 		return nil, fmt.Errorf("failed to read private key: %w", err)
 	}
@@ -325,7 +328,7 @@ func (rp *ResearchUserProvisioner) uploadScript(client *ssh.Client, script, remo
 	if err != nil {
 		return fmt.Errorf("failed to create session: %w", err)
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }() // returns io.EOF once the command has completed; nothing actionable
 
 	// Use cat to write the script
 	cmd := fmt.Sprintf("cat > %s", remotePath)
@@ -340,7 +343,7 @@ func (rp *ResearchUserProvisioner) executeCommand(client *ssh.Client, command st
 	if err != nil {
 		return "", fmt.Errorf("failed to create session: %w", err)
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }() // returns io.EOF once the command has completed; nothing actionable
 
 	var stdout, stderr bytes.Buffer
 	session.Stdout = &stdout
@@ -362,7 +365,7 @@ func (rp *ResearchUserProvisioner) executeCommandWithContext(ctx context.Context
 	if err != nil {
 		return "", fmt.Errorf("failed to create session: %w", err)
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }() // returns io.EOF once the command has completed; nothing actionable
 
 	var stdout, stderr bytes.Buffer
 	session.Stdout = &stdout
@@ -384,7 +387,7 @@ func (rp *ResearchUserProvisioner) executeCommandWithContext(ctx context.Context
 		}
 		return output, nil
 	case <-ctx.Done():
-		session.Close() // Force session close
+		_ = session.Close() // Force session close; best effort, we are already returning the timeout error
 		return stdout.String(), fmt.Errorf("command timed out: %w", ctx.Err())
 	}
 }

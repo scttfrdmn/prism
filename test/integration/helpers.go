@@ -93,12 +93,14 @@ func (ctx *TestContext) StartDaemon() {
 
 	// Add cleanup for state directory
 	ctx.AddCleanup(func() {
-		os.RemoveAll(tempStateDir)
+		if err := os.RemoveAll(tempStateDir); err != nil {
+			ctx.T.Logf("Warning: failed to remove %s: %v", tempStateDir, err)
+		}
 		ctx.T.Logf("Cleaned up test state directory")
 	})
 
 	// Start daemon with isolated state directory
-	cmd := exec.Command(daemonPath)
+	cmd := exec.Command(daemonPath) //nolint:gosec // G204: test harness runs the locally built prismd binary, no args/shell
 	// Set environment to use test state directory (matches user experience with custom state location)
 	env := os.Environ()
 	env = append(env,
@@ -127,8 +129,10 @@ func (ctx *TestContext) StartDaemon() {
 			// Try graceful shutdown first (SIGTERM)
 			if err := cmd.Process.Signal(os.Interrupt); err != nil {
 				ctx.T.Logf("Failed to send interrupt signal: %v", err)
-				cmd.Process.Kill()
-				cmd.Wait()
+				if err := cmd.Process.Kill(); err != nil {
+					ctx.T.Logf("Failed to kill daemon: %v", err)
+				}
+				_ = cmd.Wait() // reaps the killed process; its "signal: killed" error is expected
 				return
 			}
 
@@ -143,8 +147,12 @@ func (ctx *TestContext) StartDaemon() {
 				ctx.T.Log("Daemon stopped gracefully")
 			case <-time.After(5 * time.Second):
 				ctx.T.Log("Daemon shutdown timeout, forcing kill")
-				cmd.Process.Kill()
-				cmd.Wait()
+				if err := cmd.Process.Kill(); err != nil {
+					ctx.T.Logf("Failed to kill daemon: %v", err)
+				}
+				// The goroutine above is already in cmd.Wait(); calling Wait again
+				// would race/fail, so wait for it to observe the exit instead.
+				<-done
 			}
 
 			// Give OS time to release port and resources
@@ -204,13 +212,17 @@ func (ctx *TestContext) Cleanup() {
 	// Delete all tracked instances
 	for _, name := range ctx.InstanceNames {
 		ctx.T.Logf("Cleaning up instance: %s", name)
-		ctx.Client.DeleteInstance(context.Background(), name) // Best-effort cleanup
+		if err := ctx.Client.DeleteInstance(context.Background(), name); err != nil { // Best-effort cleanup
+			ctx.T.Logf("Warning: failed to delete instance %s: %v", name, err)
+		}
 	}
 
 	// Delete all tracked volumes
 	for _, name := range ctx.VolumeNames {
 		ctx.T.Logf("Cleaning up volume: %s", name)
-		ctx.Client.DeleteVolume(context.Background(), name) // Best-effort cleanup
+		if err := ctx.Client.DeleteVolume(context.Background(), name); err != nil { // Best-effort cleanup
+			ctx.T.Logf("Warning: failed to delete volume %s: %v", name, err)
+		}
 	}
 
 	// Run custom cleanup functions

@@ -32,7 +32,7 @@ import (
 // 6. TAs help troubleshoot student environments
 // 7. End of semester: Bulk cleanup of all instances
 // 8. Budget review and planning for next semester
-func TestUniversityClassPersona_ProfThompson(t *testing.T) {
+func TestUniversityClassPersona_ProfThompson(t *testing.T) { //nolint:gocognit // end-to-end persona scenario; linear narrative steps read better inline than split up
 	if testing.Short() {
 		t.Skip("Skipping university class persona test in short mode")
 	}

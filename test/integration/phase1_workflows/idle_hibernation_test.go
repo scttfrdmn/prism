@@ -5,11 +5,8 @@ package phase1_workflows
 
 import (
 	"context"
-	"strings"
 	"testing"
-	"time"
 
-	"github.com/scttfrdmn/prism/pkg/types"
 	"github.com/scttfrdmn/prism/test/fixtures"
 	"github.com/scttfrdmn/prism/test/integration"
 )
@@ -33,7 +30,7 @@ func TestIdleDetection_TriggersHibernation(t *testing.T) {
 	}
 
 	// Setup
-	ctx := integration.NewTestContext(t)
+	ctx := integration.NewTestContext(t) //nolint:staticcheck // SA4006: used by the scenario below t.Skip, kept for when idle detection lands
 
 	// Step 1: DETERMINISTIC CHECK FIRST - Check if automatic idle detection is implemented
 	// DON'T launch expensive instance if feature isn't available
@@ -185,41 +182,4 @@ func TestIdleDetection_ManualHibernation(t *testing.T) {
 	integration.AssertEqual(t, "running", instanceState.State, "Instance should be running after resume")
 
 	t.Log("✓ Instance resumed successfully - hibernation cycle complete")
-}
-
-// Helper Functions
-
-// calculateExpectedSavings estimates cost savings from hibernation
-func calculateExpectedSavings(instance *types.Instance, startTime, endTime time.Time) float64 {
-	// Use instance hourly rate if available, otherwise estimate
-	hourlyRate := instance.HourlyRate
-	if hourlyRate == 0 {
-		// Fallback estimate based on instance type
-		if strings.Contains(strings.ToLower(instance.InstanceType), "micro") {
-			hourlyRate = 0.0104 // t3.micro
-		} else if strings.Contains(strings.ToLower(instance.InstanceType), "small") {
-			hourlyRate = 0.0208 // t3.small
-		} else if strings.Contains(strings.ToLower(instance.InstanceType), "medium") {
-			hourlyRate = 0.0416 // t3.medium
-		} else {
-			hourlyRate = 0.02 // Generic fallback
-		}
-	}
-
-	// Calculate hours since start
-	duration := endTime.Sub(startTime)
-	hours := duration.Hours()
-
-	// Savings = hourly rate * hours (99% of compute cost saved during hibernation)
-	savings := hourlyRate * hours * 0.99
-
-	return savings
-}
-
-// abs returns absolute value of float64
-func abs(x float64) float64 {
-	if x < 0 {
-		return -x
-	}
-	return x
 }

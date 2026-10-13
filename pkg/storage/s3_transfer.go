@@ -6,7 +6,7 @@ package storage
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec // G501: MD5 needed to compare against S3 ETags (integrity, not security)
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -210,11 +210,11 @@ func NewTransferManager(s3Client *s3.Client, options *TransferOptions) *Transfer
 // UploadFile uploads a file to S3 with multipart upload and progress tracking
 func (tm *TransferManager) UploadFile(ctx context.Context, localPath, bucket, key string) (*TransferProgress, error) {
 	// Open local file
-	file, err := os.Open(localPath)
+	file, err := os.Open(localPath) //nolint:gosec // G304: local file chosen by the authenticated CLI/GUI user; the daemon runs as that same user
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // read-only; close error carries no data-loss risk
 
 	// Get file size
 	stat, err := file.Stat()
@@ -354,16 +354,17 @@ func (tm *TransferManager) DownloadFile(ctx context.Context, bucket, key, localP
 	}()
 
 	// Ensure directory exists
-	if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil { //nolint:gosec // G301: user-chosen download destination; standard directory permissions (umask applies)
 		return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
 
 	// Create output file
-	file, err := os.Create(localPath)
+	file, err := os.Create(localPath) //nolint:gosec // G304: download destination chosen by the authenticated CLI/GUI user; the daemon runs as that same user
 	if err != nil {
 		return nil, fmt.Errorf("failed to create file: %w", err)
 	}
-	defer file.Close()
+	// Safety net for early returns; the success path closes explicitly (and checks the error) below.
+	defer func() { _ = file.Close() }()
 
 	// Create progress tracking writer
 	progressWriter := &progressWriter{
@@ -390,6 +391,15 @@ func (tm *TransferManager) DownloadFile(ctx context.Context, bucket, key, localP
 		progress.Error = err.Error()
 		tm.mu.Unlock()
 		return progress, fmt.Errorf("download failed: %w", err)
+	}
+
+	// Close the written file now so a failed flush is reported as a failed download.
+	if err := file.Close(); err != nil {
+		tm.mu.Lock()
+		progress.Status = TransferStatusFailed
+		progress.Error = fmt.Sprintf("failed to close downloaded file: %v", err)
+		tm.mu.Unlock()
+		return progress, fmt.Errorf("failed to close downloaded file: %w", err)
 	}
 
 	// Verify checksum if enabled
@@ -593,14 +603,14 @@ func (pw *progressWriter) WriteAt(p []byte, off int64) (int, error) {
 
 // computeFileMD5 computes the MD5 checksum of a file
 func computeFileMD5(filePath string) (string, error) {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) //nolint:gosec // G304: file this transfer manager just uploaded/downloaded at the user-chosen path
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // read-only; close error carries no data-loss risk
 
 	// nosemgrep: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5 -- S3 defines ETag as the MD5 of the object; this verifies against that ETag, not a security signature.
-	hash := md5.New()
+	hash := md5.New() //nolint:gosec // G401: S3 ETag is the object's MD5; used for integrity comparison, not security
 	if _, err := io.Copy(hash, file); err != nil {
 		return "", err
 	}
