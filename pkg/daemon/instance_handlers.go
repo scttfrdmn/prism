@@ -526,7 +526,6 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 	if req.ProjectID != "" && s.projectManager != nil && s.approvalManager != nil {
 		if proj, err := s.projectManager.GetProject(r.Context(), req.ProjectID); err == nil &&
 			proj.ApprovalPolicy != nil && proj.ApprovalPolicy.RequireApprovalAbove > 0 {
-
 			estimatedHourly := estimateHourlyCostFromSize(req.Size)
 			if estimatedHourly > proj.ApprovalPolicy.RequireApprovalAbove {
 				// Check if caller is admin/owner (they bypass the gate)

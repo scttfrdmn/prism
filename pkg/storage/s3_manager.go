@@ -339,7 +339,6 @@ type SSMExecutor interface {
 // Installs the chosen mount tool if not already present, then mounts at mountPath.
 func (m *S3Manager) MountS3BucketOnInstance(ctx context.Context, ssm SSMExecutor,
 	instanceID, instanceName, bucketName, mountPath string, method S3MountMethod, readOnly bool) (*MountResult, error) {
-
 	// GetMountCommand returns a full install+mount script; we run it directly.
 	script := m.GetMountCommand(bucketName, mountPath, method)
 	if script == "" {
@@ -370,7 +369,6 @@ func (m *S3Manager) MountS3BucketOnInstance(ctx context.Context, ssm SSMExecutor
 // UnmountS3BucketFromInstance unmounts a mount path on an instance via SSM.
 func (m *S3Manager) UnmountS3BucketFromInstance(ctx context.Context, ssm SSMExecutor,
 	instanceID, mountPath string) error {
-
 	script := fmt.Sprintf(`#!/bin/bash
 set -e
 fusermount -u "%s" 2>/dev/null || umount "%s"
@@ -384,7 +382,6 @@ echo "OK"
 // ListInstanceS3Mounts returns active S3 mounts on an instance by parsing /proc/mounts.
 func (m *S3Manager) ListInstanceS3Mounts(ctx context.Context, ssm SSMExecutor,
 	instanceID string) ([]ActiveS3Mount, error) {
-
 	script := `#!/bin/bash
 grep -E 's3fs:|goofys:|mountpoint-s3:|rclone:' /proc/mounts 2>/dev/null || true`
 

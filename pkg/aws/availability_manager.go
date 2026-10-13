@@ -232,7 +232,6 @@ func (am *AvailabilityManager) AttemptLaunchWithFailover(
 	instanceType string,
 	launchFunc func(ctx context.Context, az string) (string, error),
 ) (instanceID string, az string, err error) {
-
 	// Get recommended AZ ordering
 	recommendation, err := am.GetRecommendedAZ(ctx, instanceType)
 	if err != nil {

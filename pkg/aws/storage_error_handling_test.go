@@ -18,7 +18,6 @@ import (
 
 // TestEFSVolumeErrorScenarios tests EFS volume operations against real-world failure scenarios
 func TestEFSVolumeErrorScenarios(t *testing.T) {
-
 	t.Run("quota_exceeded_during_volume_creation", func(t *testing.T) {
 		// User scenario: PhD student tries to create large EFS volume but hits AWS quota limit
 		mockEFS := &MockEFSClient{}
@@ -147,7 +146,6 @@ func TestEFSVolumeErrorScenarios(t *testing.T) {
 
 // TestEBSVolumeErrorScenarios tests EBS volume operations against common failure scenarios
 func TestEBSVolumeErrorScenarios(t *testing.T) {
-
 	t.Run("capacity_not_available_in_az", func(t *testing.T) {
 		// User scenario: Research lab tries to create large io2 volume but AZ has no capacity
 		mockEC2 := &MockEC2Client{}
@@ -336,7 +334,6 @@ func TestEBSVolumeErrorScenarios(t *testing.T) {
 
 // TestStorageStatePersistenceErrors tests error handling in storage state management
 func TestStorageStatePersistenceErrors(t *testing.T) {
-
 	t.Run("state_corruption_during_volume_save", func(t *testing.T) {
 		// User scenario: Disk corruption during volume state save
 		mockEFS := &MockEFSClient{}
@@ -434,7 +431,6 @@ func TestStorageStatePersistenceErrors(t *testing.T) {
 
 // TestStorageWorkflowIntegration tests complete storage workflows that users commonly execute
 func TestStorageWorkflowIntegration(t *testing.T) {
-
 	t.Run("complete_efs_workflow_with_failures", func(t *testing.T) {
 		// User scenario: Complete EFS workflow - create, mount, unmount, delete with failures
 		mockEFS := &MockEFSClient{}
