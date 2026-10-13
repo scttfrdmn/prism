@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scttfrdmn/prism/pkg/types"
 	"github.com/scttfrdmn/prism/test/fixtures"
 	"github.com/scttfrdmn/prism/test/integration"
 )
@@ -55,9 +56,9 @@ func TestRegionalOutageHandling(t *testing.T) {
 	t.Logf("✅ Project created: %s", project.ID)
 
 	// Verify we can list instances (baseline operation)
-	instances, err := ctx.Client.GetInstances(context.Background())
+	instances, err := ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Baseline list should succeed")
-	t.Logf("✅ Baseline operation successful (%d instances found)", len(instances))
+	t.Logf("✅ Baseline operation successful (%d instances found)", len(instances.Instances))
 
 	// ========================================
 	// Test Scenario: Simulate Regional Outage
@@ -78,10 +79,10 @@ func TestRegionalOutageHandling(t *testing.T) {
 	instanceName := integration.GenerateTestName("outage-test-instance")
 	startTime := time.Now()
 
-	_, err = ctx.Client.LaunchInstance(outageCtx, map[string]interface{}{
-		"template": "Python ML Workstation",
-		"name":     instanceName,
-		"size":     "S",
+	_, err = ctx.Client.LaunchInstance(outageCtx, types.LaunchRequest{
+		Template: "Python ML Workstation",
+		Name:     instanceName,
+		Size:     "S",
 	})
 
 	elapsed := time.Since(startTime)
@@ -115,13 +116,13 @@ func TestRegionalOutageHandling(t *testing.T) {
 	t.Logf("📋 Phase 3: Verifying state consistency after outage")
 
 	// List instances again to verify state is consistent
-	postInstances, err := ctx.Client.GetInstances(context.Background())
+	postInstances, err := ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Should be able to list instances after simulated outage")
 
-	if len(postInstances) == len(instances) {
-		t.Logf("✅ State is consistent (%d instances before and after)", len(instances))
+	if len(postInstances.Instances) == len(instances.Instances) {
+		t.Logf("✅ State is consistent (%d instances before and after)", len(instances.Instances))
 	} else {
-		t.Logf("⚠️  Instance count changed: %d -> %d", len(instances), len(postInstances))
+		t.Logf("⚠️  Instance count changed: %d -> %d", len(instances.Instances), len(postInstances.Instances))
 	}
 
 	// ========================================
@@ -208,19 +209,19 @@ func TestPartialServiceOutage(t *testing.T) {
 	t.Logf("Testing multiple AWS services...")
 
 	// EC2: List instances
-	instances, err := ctx.Client.GetInstances(context.Background())
+	instances, err := ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "EC2 list should work")
-	t.Logf("✅ EC2 service: %d instances", len(instances))
+	t.Logf("✅ EC2 service: %d instances", len(instances.Instances))
 
 	// EFS: List volumes
-	volumes, err := ctx.Client.ListEFSVolumes(context.Background())
+	volumes, err := ctx.Client.ListVolumes(context.Background())
 	integration.AssertNoError(t, err, "EFS list should work")
 	t.Logf("✅ EFS service: %d volumes", len(volumes))
 
 	// Projects API
-	projects, err := ctx.Client.ListProjects(context.Background())
+	projects, err := ctx.Client.ListProjects(context.Background(), nil)
 	integration.AssertNoError(t, err, "Projects list should work")
-	t.Logf("✅ Projects service: %d projects", len(projects))
+	t.Logf("✅ Projects service: %d projects", len(projects.Projects))
 
 	t.Logf("✅ All services operational in baseline")
 
@@ -237,10 +238,10 @@ func TestPartialServiceOutage(t *testing.T) {
 	defer cancel()
 
 	instanceName := integration.GenerateTestName("ec2-outage-test")
-	_, err = ctx.Client.LaunchInstance(ec2OutageCtx, map[string]interface{}{
-		"template": "Python ML Workstation",
-		"name":     instanceName,
-		"size":     "S",
+	_, err = ctx.Client.LaunchInstance(ec2OutageCtx, types.LaunchRequest{
+		Template: "Python ML Workstation",
+		Name:     instanceName,
+		Size:     "S",
 	})
 
 	if err != nil {
@@ -256,7 +257,7 @@ func TestPartialServiceOutage(t *testing.T) {
 	t.Logf("📋 Phase 3: Verifying other services remain operational")
 
 	// EFS should still work during EC2 outage
-	postVolumes, err := ctx.Client.ListEFSVolumes(context.Background())
+	postVolumes, err := ctx.Client.ListVolumes(context.Background())
 	if err == nil {
 		t.Logf("✅ EFS service still operational (%d volumes)", len(postVolumes))
 	} else {
@@ -264,9 +265,9 @@ func TestPartialServiceOutage(t *testing.T) {
 	}
 
 	// Projects should still work
-	postProjects, err := ctx.Client.ListProjects(context.Background())
+	postProjects, err := ctx.Client.ListProjects(context.Background(), nil)
 	if err == nil {
-		t.Logf("✅ Projects service still operational (%d projects)", len(postProjects))
+		t.Logf("✅ Projects service still operational (%d projects)", len(postProjects.Projects))
 	} else {
 		t.Logf("⚠️  Projects service affected: %v", err)
 	}
@@ -541,7 +542,7 @@ func TestAPIThrottling(t *testing.T) {
 	startTime := time.Now()
 
 	for i := 0; i < rapidCalls; i++ {
-		_, err := ctx.Client.GetInstances(context.Background())
+		_, err := ctx.Client.ListInstances(context.Background())
 
 		if err != nil {
 			errMsg := err.Error()
@@ -599,7 +600,7 @@ func TestAPIThrottling(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	// Try operation again
-	_, err := ctx.Client.GetInstances(context.Background())
+	_, err := ctx.Client.ListInstances(context.Background())
 	if err == nil {
 		t.Logf("✅ Operations recovered after throttling cooldown")
 	} else {
@@ -720,11 +721,11 @@ func TestEventualConsistency(t *testing.T) {
 
 	var foundInList bool
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		projects, err := ctx.Client.ListProjects(context.Background())
+		projects, err := ctx.Client.ListProjects(context.Background(), nil)
 		integration.AssertNoError(t, err, "List should succeed")
 
 		// Check if our project appears in list
-		for _, p := range projects {
+		for _, p := range projects.Projects {
 			if p.ID == project.ID {
 				foundInList = true
 				t.Logf("✅ Project appears in list on attempt %d", attempt+1)

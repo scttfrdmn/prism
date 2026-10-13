@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scttfrdmn/prism/pkg/api/client"
+	"github.com/scttfrdmn/prism/pkg/types"
 	"github.com/scttfrdmn/prism/test/fixtures"
 	"github.com/scttfrdmn/prism/test/integration"
 )
@@ -96,7 +96,7 @@ func TestNetworkDownDuringLaunch(t *testing.T) {
 
 	// Launch with timeout context - this should fail fast
 	startTime = time.Now()
-	timeoutInstance, err := ctx.Client.LaunchInstance(shortCtx, client.LaunchInstanceRequest{
+	timeoutInstance, err := ctx.Client.LaunchInstance(shortCtx, types.LaunchRequest{
 		Template: "Python ML Workstation",
 		Name:     instanceName,
 		Size:     "S",
@@ -113,21 +113,19 @@ func TestNetworkDownDuringLaunch(t *testing.T) {
 			t.Logf("⚠️  Launch failed with non-timeout error: %s", err.Error())
 		}
 	} else {
-		// If launch succeeded despite timeout, verify it's valid
-		if timeoutInstance.State == "running" {
+		// If launch succeeded despite timeout, make sure the instance is
+		// cleaned up (the registry deletes instances by name).
+		registry.Register("instance", instanceName)
+		if timeoutInstance.Instance.State == "running" {
 			t.Logf("✅ Launch completed before timeout (%v)", elapsed)
-			// Clean up successful instance
-			fixtures.RegisterCleanupResource(t, registry, "instance", timeoutInstance.ID, func() error {
-				return ctx.Client.DeleteInstance(context.Background(), timeoutInstance.ID)
-			})
 		}
 	}
 
 	// Verify state is consistent after timeout
 	t.Logf("Verifying state consistency after timeout...")
-	instances, err := ctx.Client.GetInstances(context.Background())
+	instances, err := ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Should be able to list instances after timeout")
-	t.Logf("✅ State remains consistent (%d instances found)", len(instances))
+	t.Logf("✅ State remains consistent (%d instances found)", len(instances.Instances))
 
 	// ========================================
 	// Test Scenario: Recovery After Network Issues

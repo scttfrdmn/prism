@@ -92,13 +92,13 @@ func TestDaemonFailureRecovery(t *testing.T) {
 	volumeName := integration.GenerateTestName("resilience-test-volume")
 	t.Logf("Creating test EFS volume: %s", volumeName)
 
-	volume, err := fixtures.CreateTestEFSVolume(t, registry, fixtures.CreateTestEFSVolumeOptions{
-		Name:      volumeName,
-		SizeGB:    100,
-		ProjectID: &project.ID,
+	// EFS is elastic (no size) and volume creation takes no project/description,
+	// so only the name is passed.
+	volume, err := fixtures.CreateTestVolume(t, registry, fixtures.CreateTestVolumeOptions{
+		Name: volumeName,
 	})
 	integration.AssertNoError(t, err, "Failed to create EFS volume")
-	t.Logf("✅ EFS volume created: %s (ID: %s)", volume.Name, volume.ID)
+	t.Logf("✅ EFS volume created: %s (ID: %s)", volume.Name, volume.FileSystemID)
 
 	// Step 4: Verify state is accessible
 	t.Logf("Verifying baseline state...")
@@ -115,14 +115,14 @@ func TestDaemonFailureRecovery(t *testing.T) {
 	integration.AssertEqual(t, project.ID, retrievedProject.ID, "Project ID should match")
 
 	// Get volume info
-	retrievedVolume, err := ctx.Client.GetEFSVolume(context.Background(), volume.ID)
+	retrievedVolume, err := ctx.Client.GetVolume(context.Background(), volume.Name)
 	integration.AssertNoError(t, err, "Failed to get volume info")
-	integration.AssertEqual(t, volume.ID, retrievedVolume.ID, "Volume ID should match")
+	integration.AssertEqual(t, volume.FileSystemID, retrievedVolume.FileSystemID, "Volume filesystem ID should match")
 
 	t.Logf("✅ Baseline state verified")
 	t.Logf("   - Project: %s", project.ID)
 	t.Logf("   - Instance: %s (%s)", instance.ID, instance.State)
-	t.Logf("   - Volume: %s", volume.ID)
+	t.Logf("   - Volume: %s", volume.FileSystemID)
 
 	// ========================================
 	// Scenario 2: Simulate Daemon Restart
@@ -162,7 +162,7 @@ func TestDaemonFailureRecovery(t *testing.T) {
 	newClient := client.NewClient("http://localhost:8947")
 
 	// Verify daemon is responsive
-	_, err = newClient.GetInstances(context.Background())
+	_, err = newClient.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Daemon should be responsive after restart")
 	t.Logf("✅ Daemon responsive")
 
@@ -195,20 +195,22 @@ func TestDaemonFailureRecovery(t *testing.T) {
 	// Step 8: Verify volume state persisted
 	t.Logf("Verifying volume state...")
 
-	recoveredVolume, err := newClient.GetEFSVolume(context.Background(), volume.ID)
+	recoveredVolume, err := newClient.GetVolume(context.Background(), volume.Name)
 	integration.AssertNoError(t, err, "Should be able to retrieve volume after restart")
-	integration.AssertEqual(t, volume.ID, recoveredVolume.ID, "Volume ID should be preserved")
+	integration.AssertEqual(t, volume.FileSystemID, recoveredVolume.FileSystemID, "Volume filesystem ID should be preserved")
 	integration.AssertEqual(t, volume.Name, recoveredVolume.Name, "Volume name should be preserved")
 	t.Logf("✅ Volume state recovered")
 
 	// Step 9: Verify budget state persisted
 	t.Logf("Verifying budget state...")
 
-	recoveredBudget, err := newClient.GetProjectBudgetStatus(context.Background(), project.ID)
+	_, err = newClient.GetProjectBudgetStatus(context.Background(), project.ID)
 	integration.AssertNoError(t, err, "Should be able to retrieve budget after restart")
 
-	if recoveredBudget.MonthlyLimit != nil {
-		integration.AssertEqual(t, monthlyLimit, *recoveredBudget.MonthlyLimit, "Monthly limit should be preserved")
+	// BudgetStatus does not carry the monthly limit; it lives on the project's
+	// budget configuration (recoveredProject was fetched after the restart above).
+	if recoveredProject.Budget != nil && recoveredProject.Budget.MonthlyLimit != nil {
+		integration.AssertEqual(t, monthlyLimit, *recoveredProject.Budget.MonthlyLimit, "Monthly limit should be preserved")
 	} else {
 		t.Error("Monthly limit should be set after recovery")
 	}
@@ -224,15 +226,15 @@ func TestDaemonFailureRecovery(t *testing.T) {
 	// Step 10: Try to list all resources
 	t.Logf("Testing list operations...")
 
-	allInstances, err := newClient.GetInstances(context.Background())
+	allInstances, err := newClient.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Should be able to list instances after restart")
-	t.Logf("   Listed %d instances", len(allInstances))
+	t.Logf("   Listed %d instances", len(allInstances.Instances))
 
-	allProjects, err := newClient.ListProjects(context.Background())
+	allProjects, err := newClient.ListProjects(context.Background(), nil)
 	integration.AssertNoError(t, err, "Should be able to list projects after restart")
-	t.Logf("   Listed %d projects", len(allProjects))
+	t.Logf("   Listed %d projects", len(allProjects.Projects))
 
-	allVolumes, err := newClient.ListEFSVolumes(context.Background())
+	allVolumes, err := newClient.ListVolumes(context.Background())
 	integration.AssertNoError(t, err, "Should be able to list volumes after restart")
 	t.Logf("   Listed %d volumes", len(allVolumes))
 

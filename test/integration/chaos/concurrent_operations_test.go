@@ -170,12 +170,12 @@ func TestConcurrentInstanceLaunches(t *testing.T) {
 	t.Logf("📋 Validating state consistency")
 
 	// List all instances
-	instances, err := ctx.Client.GetInstances(context.Background())
+	instances, err := ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Failed to list instances")
 
 	// Count instances in this project
 	var projectInstanceCount int
-	for _, inst := range instances {
+	for _, inst := range instances.Instances {
 		if inst.ProjectID == project.ID {
 			projectInstanceCount++
 		}
@@ -439,7 +439,7 @@ func TestRaceConditionDetection(t *testing.T) {
 			switch index % 4 {
 			case 0:
 				// List operations
-				_, err := ctx.Client.GetInstances(context.Background())
+				_, err := ctx.Client.ListInstances(context.Background())
 				if err != nil {
 					operationErrors.Add(1)
 				} else {
@@ -448,7 +448,7 @@ func TestRaceConditionDetection(t *testing.T) {
 
 			case 1:
 				// Project operations
-				_, err := ctx.Client.ListProjects(context.Background())
+				_, err := ctx.Client.ListProjects(context.Background(), nil)
 				if err != nil {
 					operationErrors.Add(1)
 				} else {
@@ -457,7 +457,7 @@ func TestRaceConditionDetection(t *testing.T) {
 
 			case 2:
 				// Storage operations
-				_, err := ctx.Client.ListEFSVolumes(context.Background())
+				_, err := ctx.Client.ListVolumes(context.Background())
 				if err != nil {
 					operationErrors.Add(1)
 				} else {

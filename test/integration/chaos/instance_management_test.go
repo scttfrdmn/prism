@@ -358,11 +358,10 @@ func TestConnectToTerminatedInstance(t *testing.T) {
 	t.Logf("")
 	t.Logf("📋 Baseline: Getting connection info while running")
 
-	connectionInfo, err := ctx.Client.GetConnectionInfo(context.Background(), instance.ID)
+	connectionInfo, err := ctx.Client.ConnectInstance(context.Background(), instance.Name)
 	if err == nil {
 		t.Logf("✅ Connection info retrieved successfully")
-		t.Logf("   Host: %s", connectionInfo.Host)
-		t.Logf("   Port: %d", connectionInfo.Port)
+		t.Logf("   Connection: %s", connectionInfo)
 	} else {
 		t.Logf("⚠️  Failed to get connection info: %v", err)
 	}
@@ -388,7 +387,7 @@ func TestConnectToTerminatedInstance(t *testing.T) {
 	t.Logf("")
 	t.Logf("📋 Attempting to get connection info after termination")
 
-	connectionInfo, err = ctx.Client.GetConnectionInfo(context.Background(), instance.ID)
+	connectionInfo, err = ctx.Client.ConnectInstance(context.Background(), instance.Name)
 	if err != nil {
 		errorMsg := strings.ToLower(err.Error())
 		if strings.Contains(errorMsg, "terminated") ||
@@ -557,12 +556,12 @@ func TestInstanceVanishedFromAWS(t *testing.T) {
 	t.Logf("📋 Testing list operations")
 
 	// List instances - vanished one should not appear or be marked terminated
-	instances, err := ctx.Client.GetInstances(context.Background())
+	instances, err := ctx.Client.ListInstances(context.Background())
 	if err != nil {
 		t.Logf("⚠️  List instances failed: %v", err)
 	} else {
 		var foundInstance bool
-		for _, inst := range instances {
+		for _, inst := range instances.Instances {
 			if inst.ID == instance.ID {
 				foundInstance = true
 				t.Logf("Found instance in list with state: %s", inst.State)
@@ -658,11 +657,11 @@ func TestStateConsistency(t *testing.T) {
 	t.Logf("")
 	t.Logf("📋 Baseline: Verifying initial consistency")
 
-	instances, err := ctx.Client.GetInstances(context.Background())
+	instances, err := ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Failed to list instances")
 
 	var foundCount int
-	for _, inst := range instances {
+	for _, inst := range instances.Instances {
 		if inst.ID == instance1.ID || inst.ID == instance2.ID {
 			foundCount++
 		}
@@ -726,12 +725,12 @@ func TestStateConsistency(t *testing.T) {
 	t.Logf("")
 	t.Logf("📋 Verifying list consistency")
 
-	instances, err = ctx.Client.GetInstances(context.Background())
+	instances, err = ctx.Client.ListInstances(context.Background())
 	if err != nil {
 		t.Logf("⚠️  List operation failed: %v", err)
 	} else {
 		var instance1Found, instance2Found bool
-		for _, inst := range instances {
+		for _, inst := range instances.Instances {
 			if inst.ID == instance1.ID {
 				instance1Found = true
 				t.Logf("   Instance 1: %s", inst.State)

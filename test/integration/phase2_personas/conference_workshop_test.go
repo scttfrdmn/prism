@@ -66,27 +66,27 @@ func TestConferenceWorkshop_NeurIPS(t *testing.T) {
 		Owner:       "alex.rivera@university.edu",
 		Budget: &fixtures.TestBudgetOptions{
 			TotalBudget:  workshopBudget,
-			BudgetPeriod: types.BudgetPeriodCustom, // One-time workshop
+			BudgetPeriod: types.BudgetPeriodProject, // One-time workshop (project-lifetime budget)
 			AlertThresholds: []types.BudgetAlert{
 				{
-					Threshold: 80.0,
-					AlertType: types.AlertTypeEmail,
+					Threshold: 0.80,
+					Type:      types.BudgetAlertEmail,
 					Message:   "Workshop using 80% of budget",
 					Enabled:   true,
 				},
 			},
 			AutoActions: []types.BudgetAutoAction{
 				{
-					Threshold:  95.0,
-					ActionType: types.ActionTypeHibernateAll,
-					Message:    "Budget nearly exhausted - hibernating all workspaces",
-					Enabled:    true,
+					Threshold: 0.95,
+					Action:    types.BudgetActionHibernateAll,
+					// Budget nearly exhausted - hibernating all workspaces
+					Enabled: true,
 				},
 				{
-					Threshold:  100.0,
-					ActionType: types.ActionTypePreventLaunch,
-					Message:    "Workshop budget exhausted",
-					Enabled:    true,
+					Threshold: 1.00,
+					Action:    types.BudgetActionPreventLaunch,
+					// Workshop budget exhausted
+					Enabled: true,
 				},
 			},
 		},
@@ -132,10 +132,6 @@ func TestConferenceWorkshop_NeurIPS(t *testing.T) {
 		Name:      testInstanceName,
 		Size:      "S", // t3.medium for participants
 		ProjectID: &workshopProject.ID,
-		Tags: map[string]string{
-			"role":     "test",
-			"workshop": "neurips2025-pytorch",
-		},
 	})
 	integration.AssertNoError(t, err, "Failed to launch test workspace")
 	integration.AssertEqual(t, "running", testInstance.State, "Test workspace should be running")
@@ -157,7 +153,6 @@ func TestConferenceWorkshop_NeurIPS(t *testing.T) {
 	participantInstances := make([]*types.Instance, 0, participantCount)
 
 	for i := 0; i < participantCount; i++ {
-		participantEmail := fmt.Sprintf("participant%d@conference.org", i+1)
 		instanceName := integration.GenerateTestName(fmt.Sprintf("workshop-participant%d", i+1))
 
 		t.Logf("   Launching workspace for participant %d...", i+1)
@@ -167,11 +162,6 @@ func TestConferenceWorkshop_NeurIPS(t *testing.T) {
 			Name:      instanceName,
 			Size:      "S", // t3.medium for all participants
 			ProjectID: &workshopProject.ID,
-			Tags: map[string]string{
-				"participant": participantEmail,
-				"workshop":    "neurips2025-pytorch",
-				"session":     "hands-on",
-			},
 		})
 		integration.AssertNoError(t, err, fmt.Sprintf("Failed to launch workspace for participant %d", i+1))
 		integration.AssertEqual(t, "running", instance.State, "Participant workspace should be running")
@@ -199,12 +189,12 @@ func TestConferenceWorkshop_NeurIPS(t *testing.T) {
 	workshopBudgetStatus, err := ctx.Client.GetProjectBudgetStatus(context.Background(), workshopProject.ID)
 	integration.AssertNoError(t, err, "Failed to get workshop budget")
 
-	t.Logf("   Current spend: $%.2f / $%.2f budget", workshopBudgetStatus.CurrentSpend, workshopBudget)
-	t.Logf("   Budget utilization: %.1f%%", (workshopBudgetStatus.CurrentSpend/workshopBudget)*100)
+	t.Logf("   Current spend: $%.2f / $%.2f budget", workshopBudgetStatus.SpentAmount, workshopBudget)
+	t.Logf("   Budget utilization: %.1f%%", (workshopBudgetStatus.SpentAmount/workshopBudget)*100)
 	t.Logf("   Active participants: %d", len(participantInstances))
 
 	// Calculate projected cost for full 4-hour workshop
-	if workshopBudgetStatus.CurrentSpend > 0 {
+	if workshopBudgetStatus.SpentAmount > 0 {
 		// Current spend is for ~minutes, project for full 4 hours
 		// This is approximate - in real usage would be more accurate
 		t.Logf("   Budget on track for 3-hour workshop")
@@ -220,23 +210,10 @@ func TestConferenceWorkshop_NeurIPS(t *testing.T) {
 	// In production, would use scheduled termination
 	// For test, we verify all instances can be terminated on schedule
 
-	idlePolicyName := integration.GenerateTestName("workshop-auto-terminate")
-	idlePolicy, err := fixtures.CreateTestIdlePolicy(t, registry, fixtures.CreateTestIdlePolicyOptions{
-		Name:        idlePolicyName,
-		Description: "Auto-terminate all participant workspaces 3 hours after workshop",
-		IdleTimeout: 3 * time.Hour,
-		Action:      types.IdleActionTerminate, // Terminate (not hibernate) to ensure cleanup
-		ProjectID:   &workshopProject.ID,
-	})
-	integration.AssertNoError(t, err, "Failed to create auto-termination policy")
-	t.Logf("✅ Auto-termination policy created")
-
-	// Apply policy to all participant workspaces
-	for i, instance := range participantInstances {
-		err = ctx.Client.ApplyIdlePolicy(context.Background(), instance.ID, idlePolicy.ID)
-		integration.AssertNoError(t, err, fmt.Sprintf("Failed to apply policy to participant %d", i+1))
-	}
-	t.Logf("✅ Auto-termination policy applied to all %d workspaces", len(participantInstances))
+	// Custom idle policies (here: terminate after 3 idle hours) cannot be
+	// created through the API, and no built-in idle policy terminates on idle,
+	// so the policy-creation/apply step is omitted. Cleanup is verified below
+	// by accounting for every participant workspace.
 
 	// Step 8: Verify all workshop resources
 	t.Logf("📋 Verifying all workshop resources")
@@ -245,7 +222,7 @@ func TestConferenceWorkshop_NeurIPS(t *testing.T) {
 	integration.AssertNoError(t, err, "Failed to list instances")
 
 	workshopInstanceCount := 0
-	for _, inst := range allInstances {
+	for _, inst := range allInstances.Instances {
 		if inst.ProjectID == workshopProject.ID {
 			workshopInstanceCount++
 		}
@@ -268,18 +245,18 @@ func TestConferenceWorkshop_NeurIPS(t *testing.T) {
 	finalBudget, err := ctx.Client.GetProjectBudgetStatus(context.Background(), workshopProject.ID)
 	integration.AssertNoError(t, err, "Failed to get final budget")
 
-	t.Logf("   Final spend: $%.2f / $%.2f budget", finalBudget.CurrentSpend, workshopBudget)
-	t.Logf("   Budget utilization: %.1f%%", (finalBudget.CurrentSpend/workshopBudget)*100)
+	t.Logf("   Final spend: $%.2f / $%.2f budget", finalBudget.SpentAmount, workshopBudget)
+	t.Logf("   Budget utilization: %.1f%%", (finalBudget.SpentAmount/workshopBudget)*100)
 
-	budgetRemaining := workshopBudget - finalBudget.CurrentSpend
+	budgetRemaining := workshopBudget - finalBudget.SpentAmount
 	if budgetRemaining > 0 {
 		t.Logf("   Budget remaining: $%.2f", budgetRemaining)
 	}
 
 	// Critical: Verify budget was not exceeded
-	if finalBudget.CurrentSpend > workshopBudget {
+	if finalBudget.SpentAmount > workshopBudget {
 		t.Errorf("❌ Workshop budget exceeded! Spent $%.2f of $%.2f budget",
-			finalBudget.CurrentSpend, workshopBudget)
+			finalBudget.SpentAmount, workshopBudget)
 	} else {
 		t.Logf("✅ Workshop completed within budget")
 	}
@@ -294,7 +271,7 @@ func TestConferenceWorkshop_NeurIPS(t *testing.T) {
 	t.Logf("   ✓ Test environment validated before workshop")
 	t.Logf("   ✓ %d participant workspaces launched successfully", len(participantInstances))
 	t.Logf("   ✓ Budget tracked in real-time during workshop")
-	t.Logf("   ✓ Auto-termination configured for cleanup")
+	t.Logf("   ✓ All workshop workspaces accounted for cleanup")
 	t.Logf("   ✓ Workshop completed within $200 budget")
 	t.Logf("")
 	t.Logf("🎉 Dr. Rivera's workshop was a success!")

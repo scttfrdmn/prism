@@ -63,28 +63,24 @@ func TestSoloResearcher_DrSarahChen(t *testing.T) {
 			BudgetPeriod: types.BudgetPeriodMonthly,
 			AlertThresholds: []types.BudgetAlert{
 				{
-					Threshold:   50.0, // Alert at 50% ($50)
-					AlertType:   types.AlertTypeEmail,
-					Message:     "Half of monthly budget used",
-					Enabled:     true,
-					Repeat:      false,
-					RepeatHours: 0,
+					Threshold: 0.50, // Alert at 50% ($50)
+					Type:      types.BudgetAlertEmail,
+					Message:   "Half of monthly budget used",
+					Enabled:   true,
 				},
 				{
-					Threshold:   80.0, // Alert at 80% ($80)
-					AlertType:   types.AlertTypeEmail,
-					Message:     "Approaching monthly budget limit",
-					Enabled:     true,
-					Repeat:      false,
-					RepeatHours: 0,
+					Threshold: 0.80, // Alert at 80% ($80)
+					Type:      types.BudgetAlertEmail,
+					Message:   "Approaching monthly budget limit",
+					Enabled:   true,
 				},
 			},
 			AutoActions: []types.BudgetAutoAction{
 				{
-					Threshold:  100.0, // Hard stop at 100% ($100)
-					ActionType: types.ActionTypePreventLaunch,
-					Message:    "Monthly budget limit reached - cannot launch new instances",
-					Enabled:    true,
+					Threshold: 1.00, // Hard stop at 100% ($100)
+					Action:    types.BudgetActionPreventLaunch,
+					// Monthly budget limit reached - cannot launch new instances
+					Enabled: true,
 				},
 			},
 		},
@@ -117,35 +113,33 @@ func TestSoloResearcher_DrSarahChen(t *testing.T) {
 	integration.AssertNoError(t, err, "Failed to get budget status")
 
 	// Should have some cost accrued (> $0)
-	if budgetStatus.CurrentSpend <= 0 {
+	if budgetStatus.SpentAmount <= 0 {
 		t.Logf("⚠️  Warning: No cost tracked yet (may need time to accumulate)")
 	} else {
 		t.Logf("✅ Budget tracking active: $%.4f spent of $%.2f monthly limit",
-			budgetStatus.CurrentSpend, monthlyLimit)
+			budgetStatus.SpentAmount, monthlyLimit)
 	}
 
-	// Verify monthly limit is set correctly
-	if budgetStatus.MonthlyLimit == nil {
+	// Verify monthly limit is set correctly. BudgetStatus does not carry the
+	// monthly limit; it lives on the project's budget configuration.
+	projectWithBudget, err := ctx.Client.GetProject(context.Background(), project.ID)
+	integration.AssertNoError(t, err, "Failed to get project")
+	if projectWithBudget.Budget == nil || projectWithBudget.Budget.MonthlyLimit == nil {
 		t.Fatal("Monthly limit should be set")
 	}
-	integration.AssertEqual(t, monthlyLimit, *budgetStatus.MonthlyLimit, "Monthly limit should be $100")
+	integration.AssertEqual(t, monthlyLimit, *projectWithBudget.Budget.MonthlyLimit, "Monthly limit should be $100")
 
 	// Step 4: Configure idle hibernation policy
 	t.Logf("💤 Sarah configures idle hibernation (1 hour idle → hibernate)")
 
-	idlePolicyName := integration.GenerateTestName("sarah-auto-hibernate")
-	idlePolicy, err := fixtures.CreateTestIdlePolicy(t, registry, fixtures.CreateTestIdlePolicyOptions{
-		Name:        idlePolicyName,
-		Description: "Auto-hibernate after 1 hour to prevent overnight costs",
-		IdleTimeout: 1 * time.Hour,
-		Action:      types.IdleActionHibernate,
-		ProjectID:   &project.ID,
-	})
-	integration.AssertNoError(t, err, "Failed to create idle policy")
-	t.Logf("✅ Idle policy created: %s", idlePolicy.Name)
+	// Custom idle policies cannot be created through the API; use the built-in
+	// "conservative" policy template (hibernate after 60 idle minutes).
+	idlePolicy, err := ctx.Client.GetIdlePolicy(context.Background(), "conservative")
+	integration.AssertNoError(t, err, "Failed to get idle policy")
+	t.Logf("✅ Idle policy selected: %s", idlePolicy.Name)
 
 	// Step 5: Apply idle policy to instance
-	err = ctx.Client.ApplyIdlePolicy(context.Background(), instance.ID, idlePolicy.ID)
+	err = ctx.Client.ApplyIdlePolicy(context.Background(), instance.Name, idlePolicy.ID)
 	integration.AssertNoError(t, err, "Failed to apply idle policy")
 	t.Logf("✅ Idle policy applied to workspace")
 
@@ -190,10 +184,10 @@ func TestSoloResearcher_DrSarahChen(t *testing.T) {
 	integration.AssertNoError(t, err, "Failed to get budget status")
 
 	t.Logf("   Current spend: $%.2f / $%.2f monthly limit",
-		weeklyBudget.CurrentSpend, monthlyLimit)
+		weeklyBudget.SpentAmount, monthlyLimit)
 
 	// Weekly spend should be much less than monthly limit
-	if weeklyBudget.CurrentSpend > (monthlyLimit * 0.5) {
+	if weeklyBudget.SpentAmount > (monthlyLimit * 0.5) {
 		t.Logf("⚠️  Warning: High spend rate detected - may exceed monthly budget")
 	}
 
