@@ -268,7 +268,7 @@ func TestARMvsX86Availability(t *testing.T) {
 
 	t.Logf("")
 	t.Logf("Cost benefits:")
-	t.Logf("   • ARM instances: ~20% cheaper than equivalent x86")
+	t.Logf("   • ARM instances: ~20%% cheaper than equivalent x86")
 	t.Logf("   • Better price/performance ratio")
 	t.Logf("   • Prism should prefer ARM when available")
 
@@ -533,9 +533,10 @@ func TestEFSRegionalAvailability(t *testing.T) {
 
 	// Try to create EFS volume
 	volumeName := integration.GenerateTestName("efs-test-volume")
-	volume, err := fixtures.CreateTestEFSVolume(t, registry, fixtures.CreateTestEFSVolumeOptions{
-		Name:        volumeName,
-		Description: "EFS availability test volume",
+	// EFS is elastic (no size) and volume creation takes no project/description,
+	// so only the name is passed.
+	volume, err := fixtures.CreateTestVolume(t, registry, fixtures.CreateTestVolumeOptions{
+		Name: volumeName,
 	})
 
 	if err != nil {

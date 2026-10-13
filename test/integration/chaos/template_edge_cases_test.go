@@ -66,14 +66,17 @@ packages:
 
 	// Try to parse and validate
 	parser := templates.NewTemplateParser()
-	tmpl, err := parser.ParseFile(selfRefPath)
+	tmpl, err := parser.ParseTemplateFile(selfRefPath)
 
 	if err != nil {
 		t.Logf("✅ Self-reference correctly rejected during parse: %s", err.Error())
 	} else {
-		// If parse succeeded, validation should catch it
-		validator := templates.NewValidator(nil)
-		results := validator.Validate(tmpl)
+		// If parse succeeded, validation should catch it. The inheritance
+		// (cycle) rule only runs with a registry, so register the template.
+		selfRegistry := newTemplateRegistry()
+		registerTemplate(selfRegistry, tmpl)
+		validator := templates.NewComprehensiveValidator(selfRegistry)
+		results := validateTemplate(validator, tmpl)
 
 		var hasError bool
 		for _, result := range results {
@@ -122,23 +125,23 @@ package_manager: apt
 	integration.AssertNoError(t, err, "Failed to write template B")
 
 	// Try to load both templates into registry
-	registry := templates.NewTemplateRegistry()
+	registry := newTemplateRegistry()
 
-	tmplA, err := parser.ParseFile(pathA)
+	tmplA, err := parser.ParseTemplateFile(pathA)
 	if err == nil {
-		registry.Register(tmplA)
+		registerTemplate(registry, tmplA)
 	}
 
-	tmplB, err := parser.ParseFile(pathB)
+	tmplB, err := parser.ParseTemplateFile(pathB)
 	if err == nil {
-		registry.Register(tmplB)
+		registerTemplate(registry, tmplB)
 	}
 
 	// Validate with registry context
-	validator := templates.NewValidator(registry)
+	validator := templates.NewComprehensiveValidator(registry)
 
-	resultsA := validator.Validate(tmplA)
-	resultsB := validator.Validate(tmplB)
+	resultsA := validateTemplate(validator, tmplA)
+	resultsB := validateTemplate(validator, tmplB)
 
 	var cycleDetected bool
 	for _, result := range append(resultsA, resultsB...) {
@@ -187,23 +190,23 @@ package_manager: apt
 	integration.AssertNoError(t, err, "Failed to update template B")
 
 	// Create fresh registry
-	registry = templates.NewTemplateRegistry()
+	registry = newTemplateRegistry()
 
-	tmplA, _ = parser.ParseFile(pathA)
-	tmplB, _ = parser.ParseFile(pathB)
-	tmplC, err := parser.ParseFile(pathC)
+	tmplA, _ = parser.ParseTemplateFile(pathA)
+	tmplB, _ = parser.ParseTemplateFile(pathB)
+	tmplC, err := parser.ParseTemplateFile(pathC)
 	integration.AssertNoError(t, err, "Failed to parse template C")
 
-	registry.Register(tmplA)
-	registry.Register(tmplB)
-	registry.Register(tmplC)
+	registerTemplate(registry, tmplA)
+	registerTemplate(registry, tmplB)
+	registerTemplate(registry, tmplC)
 
-	validator = templates.NewValidator(registry)
+	validator = templates.NewComprehensiveValidator(registry)
 
 	// Check all three templates
-	resultsA = validator.Validate(tmplA)
-	resultsB = validator.Validate(tmplB)
-	resultsC := validator.Validate(tmplC)
+	resultsA = validateTemplate(validator, tmplA)
+	resultsB = validateTemplate(validator, tmplB)
+	resultsC := validateTemplate(validator, tmplC)
 
 	cycleDetected = false
 	for _, result := range append(append(resultsA, resultsB...), resultsC...) {
@@ -259,7 +262,7 @@ func TestDeepInheritanceChains(t *testing.T) {
 
 	tempDir := t.TempDir()
 	parser := templates.NewTemplateParser()
-	registry := templates.NewTemplateRegistry()
+	registry := newTemplateRegistry()
 
 	chainDepth := 15
 	templateNames := make([]string, chainDepth)
@@ -295,12 +298,12 @@ packages:
 		integration.AssertNoError(t, err, fmt.Sprintf("Failed to write level %d", i))
 
 		// Parse and register
-		tmpl, err := parser.ParseFile(templatePath)
+		tmpl, err := parser.ParseTemplateFile(templatePath)
 		if err != nil {
 			t.Errorf("Failed to parse level %d: %v", i, err)
 			continue
 		}
-		registry.Register(tmpl)
+		registerTemplate(registry, tmpl)
 	}
 
 	t.Logf("✅ Created %d-level inheritance chain", chainDepth)
@@ -312,11 +315,11 @@ packages:
 	t.Logf("")
 	t.Logf("📋 Validating deep chain performance")
 
-	validator := templates.NewValidator(registry)
+	validator := templates.NewComprehensiveValidator(registry)
 	deepestTemplate := registry.Templates[fmt.Sprintf("Level %d", chainDepth-1)]
 
 	startTime := time.Now()
-	results := validator.Validate(deepestTemplate)
+	results := validateTemplate(validator, deepestTemplate)
 	elapsed := time.Since(startTime)
 
 	t.Logf("Validation completed in %v", elapsed)
@@ -350,10 +353,8 @@ packages:
 	t.Logf("")
 	t.Logf("📋 Testing template resolution")
 
-	resolver := templates.NewResolver(registry)
-
 	startTime = time.Now()
-	resolved, err := resolver.Resolve(deepestTemplate.Name)
+	resolved, err := resolveTemplate(registry, deepestTemplate.Name)
 	elapsed = time.Since(startTime)
 
 	if err != nil {
@@ -420,7 +421,7 @@ func TestEmptyAndMinimalTemplates(t *testing.T) {
 	err := os.WriteFile(emptyPath, []byte(""), 0644)
 	integration.AssertNoError(t, err, "Failed to write empty file")
 
-	_, err = parser.ParseFile(emptyPath)
+	_, err = parser.ParseTemplateFile(emptyPath)
 	if err != nil {
 		t.Logf("✅ Empty file correctly rejected: %s", err.Error())
 	} else {
@@ -442,14 +443,14 @@ name: "Name Only Template"
 	err = os.WriteFile(nameOnlyPath, []byte(nameOnlyTemplate), 0644)
 	integration.AssertNoError(t, err, "Failed to write name-only template")
 
-	tmpl, err := parser.ParseFile(nameOnlyPath)
+	tmpl, err := parser.ParseTemplateFile(nameOnlyPath)
 	if err != nil {
 		t.Logf("   Parse error: %s", err.Error())
 	}
 
 	if tmpl != nil {
-		validator := templates.NewValidator(nil)
-		results := validator.Validate(tmpl)
+		validator := templates.NewComprehensiveValidator(nil)
+		results := validateTemplate(validator, tmpl)
 
 		var errorCount int
 		for _, result := range results {
@@ -484,11 +485,11 @@ package_manager: apt
 	err = os.WriteFile(minimalPath, []byte(minimalTemplate), 0644)
 	integration.AssertNoError(t, err, "Failed to write minimal template")
 
-	tmpl, err = parser.ParseFile(minimalPath)
+	tmpl, err = parser.ParseTemplateFile(minimalPath)
 	integration.AssertNoError(t, err, "Minimal template should parse")
 
-	validator := templates.NewValidator(nil)
-	results := validator.Validate(tmpl)
+	validator := templates.NewComprehensiveValidator(nil)
+	results := validateTemplate(validator, tmpl)
 
 	var hasErrors bool
 	for _, result := range results {
@@ -527,12 +528,12 @@ users: []
 	err = os.WriteFile(emptyArraysPath, []byte(emptyArraysTemplate), 0644)
 	integration.AssertNoError(t, err, "Failed to write empty-arrays template")
 
-	tmpl, err = parser.ParseFile(emptyArraysPath)
+	tmpl, err = parser.ParseTemplateFile(emptyArraysPath)
 	integration.AssertNoError(t, err, "Empty arrays template should parse")
 
-	results = validator.Validate(tmpl)
+	results = validateTemplate(validator, tmpl)
 
-	var hasErrors bool
+	hasErrors = false
 	for _, result := range results {
 		if result.Level == templates.ValidationError {
 			hasErrors = true
@@ -630,7 +631,7 @@ packages:
 	parser := templates.NewTemplateParser()
 
 	startTime := time.Now()
-	tmpl, err := parser.ParseFile(hugePath)
+	tmpl, err := parser.ParseTemplateFile(hugePath)
 	parseTime := time.Since(startTime)
 
 	if err != nil {
@@ -655,10 +656,10 @@ packages:
 		t.Logf("")
 		t.Logf("📋 Validating huge template")
 
-		validator := templates.NewValidator(nil)
+		validator := templates.NewComprehensiveValidator(nil)
 
 		startTime = time.Now()
-		results := validator.Validate(tmpl)
+		results := validateTemplate(validator, tmpl)
 		validateTime := time.Since(startTime)
 
 		t.Logf("Validation completed in %v", validateTime)
@@ -766,7 +767,7 @@ func TestInvalidInheritanceReferences(t *testing.T) {
 
 	tempDir := t.TempDir()
 	parser := templates.NewTemplateParser()
-	registry := templates.NewTemplateRegistry()
+	registry := newTemplateRegistry()
 
 	missingParentTemplate := `
 name: "Child Template"
@@ -781,13 +782,13 @@ package_manager: apt
 	err := os.WriteFile(missingParentPath, []byte(missingParentTemplate), 0644)
 	integration.AssertNoError(t, err, "Failed to write template")
 
-	tmpl, err := parser.ParseFile(missingParentPath)
+	tmpl, err := parser.ParseTemplateFile(missingParentPath)
 	integration.AssertNoError(t, err, "Parse should succeed")
 
-	registry.Register(tmpl)
+	registerTemplate(registry, tmpl)
 
-	validator := templates.NewValidator(registry)
-	results := validator.Validate(tmpl)
+	validator := templates.NewComprehensiveValidator(registry)
+	results := validateTemplate(validator, tmpl)
 
 	var foundMissingParentError bool
 	for _, result := range results {
@@ -825,10 +826,10 @@ package_manager: apt
 	err = os.WriteFile(multipleMissingPath, []byte(multipleMissingTemplate), 0644)
 	integration.AssertNoError(t, err, "Failed to write template")
 
-	tmpl, err = parser.ParseFile(multipleMissingPath)
+	tmpl, err = parser.ParseTemplateFile(multipleMissingPath)
 	integration.AssertNoError(t, err, "Parse should succeed")
 
-	results = validator.Validate(tmpl)
+	results = validateTemplate(validator, tmpl)
 
 	var missingCount int
 	for _, result := range results {
@@ -867,9 +868,9 @@ packages:
 	err = os.WriteFile(validParentPath, []byte(validParentTemplate), 0644)
 	integration.AssertNoError(t, err, "Failed to write valid parent")
 
-	validParent, err := parser.ParseFile(validParentPath)
+	validParent, err := parser.ParseTemplateFile(validParentPath)
 	integration.AssertNoError(t, err, "Valid parent should parse")
-	registry.Register(validParent)
+	registerTemplate(registry, validParent)
 
 	// Now create template with mixed parents
 	mixedTemplate := `
@@ -886,24 +887,19 @@ package_manager: apt
 	err = os.WriteFile(mixedPath, []byte(mixedTemplate), 0644)
 	integration.AssertNoError(t, err, "Failed to write mixed template")
 
-	tmpl, err = parser.ParseFile(mixedPath)
+	tmpl, err = parser.ParseTemplateFile(mixedPath)
 	integration.AssertNoError(t, err, "Parse should succeed")
 
-	validator = templates.NewValidator(registry)
-	results = validator.Validate(tmpl)
+	validator = templates.NewComprehensiveValidator(registry)
+	results = validateTemplate(validator, tmpl)
 
 	var foundInvalid bool
-	var foundValid bool
 	for _, result := range results {
 		if result.Level == templates.ValidationError {
 			if strings.Contains(result.Message, "Invalid Parent") {
 				foundInvalid = true
 				t.Logf("   Invalid detected: %s", result.Message)
 			}
-		}
-		// Valid parent shouldn't generate errors
-		if !strings.Contains(result.Message, "Valid Parent") {
-			foundValid = true
 		}
 	}
 
@@ -953,7 +949,7 @@ func TestConflictingParentConfigurations(t *testing.T) {
 
 	tempDir := t.TempDir()
 	parser := templates.NewTemplateParser()
-	registry := templates.NewTemplateRegistry()
+	registry := newTemplateRegistry()
 
 	// Parent A: Uses apt
 	parentA := `
@@ -988,13 +984,13 @@ packages:
 	integration.AssertNoError(t, err, "Failed to write parent B")
 
 	// Register parents
-	tmplA, err := parser.ParseFile(pathA)
+	tmplA, err := parser.ParseTemplateFile(pathA)
 	integration.AssertNoError(t, err, "Parent A should parse")
-	registry.Register(tmplA)
+	registerTemplate(registry, tmplA)
 
-	tmplB, err := parser.ParseFile(pathB)
+	tmplB, err := parser.ParseTemplateFile(pathB)
 	integration.AssertNoError(t, err, "Parent B should parse")
-	registry.Register(tmplB)
+	registerTemplate(registry, tmplB)
 
 	// ========================================
 	// Scenario 1: Conflicting Package Managers
@@ -1016,12 +1012,13 @@ inherits:
 	err = os.WriteFile(childPath, []byte(childTemplate), 0644)
 	integration.AssertNoError(t, err, "Failed to write child")
 
-	child, err := parser.ParseFile(childPath)
+	child, err := parser.ParseTemplateFile(childPath)
 	integration.AssertNoError(t, err, "Child should parse")
 
-	// Try to resolve the child template
-	resolver := templates.NewResolver(registry)
-	resolved, err := resolver.Resolve(child.Name)
+	// Try to resolve the child template (inheritance is resolved by the
+	// registry, so the child must be registered alongside its parents)
+	registerTemplate(registry, child)
+	resolved, err := resolveTemplate(registry, child.Name)
 
 	if err != nil {
 		t.Logf("✅ Conflict detected during resolution: %s", err.Error())
@@ -1074,13 +1071,13 @@ services:
 	err = os.WriteFile(portPathB, []byte(parentPortB), 0644)
 	integration.AssertNoError(t, err, "Failed to write port parent B")
 
-	tmplPortA, err := parser.ParseFile(portPathA)
+	tmplPortA, err := parser.ParseTemplateFile(portPathA)
 	integration.AssertNoError(t, err, "Port parent A should parse")
-	registry.Register(tmplPortA)
+	registerTemplate(registry, tmplPortA)
 
-	tmplPortB, err := parser.ParseFile(portPathB)
+	tmplPortB, err := parser.ParseTemplateFile(portPathB)
 	integration.AssertNoError(t, err, "Port parent B should parse")
-	registry.Register(tmplPortB)
+	registerTemplate(registry, tmplPortB)
 
 	portChildTemplate := `
 name: "Port Conflict Child"
@@ -1096,10 +1093,11 @@ package_manager: apt
 	err = os.WriteFile(portChildPath, []byte(portChildTemplate), 0644)
 	integration.AssertNoError(t, err, "Failed to write port child")
 
-	portChild, err := parser.ParseFile(portChildPath)
+	portChild, err := parser.ParseTemplateFile(portChildPath)
 	integration.AssertNoError(t, err, "Port child should parse")
 
-	resolved, err = resolver.Resolve(portChild.Name)
+	registerTemplate(registry, portChild)
+	resolved, err = resolveTemplate(registry, portChild.Name)
 	if err != nil {
 		t.Logf("   Port conflict error: %s", err.Error())
 	} else {
@@ -1163,10 +1161,11 @@ description: "Template with large file provisioning"
 base: ubuntu-22.04
 package_manager: apt
 files:
-  - source: "s3://prism-test-bucket/large-dataset-500mb.tar.gz"
-    destination: "/data/dataset.tar.gz"
-    checksum: "sha256:abc123..."
-    size: 524288000
+  - s3_bucket: "prism-test-bucket"
+    s3_key: "large-dataset-500mb.tar.gz"
+    destination_path: "/data/dataset.tar.gz"
+    checksum: true
+    description: "500MB dataset"
 `
 
 	tempDir := t.TempDir()
@@ -1175,15 +1174,15 @@ files:
 	integration.AssertNoError(t, err, "Failed to write template")
 
 	parser := templates.NewTemplateParser()
-	tmpl, err := parser.ParseFile(templatePath)
+	tmpl, err := parser.ParseTemplateFile(templatePath)
 	integration.AssertNoError(t, err, "Template should parse")
 
 	// Validate file provisioning configuration
 	if len(tmpl.Files) > 0 {
 		t.Logf("✅ Template has %d file(s) configured", len(tmpl.Files))
 		for i, file := range tmpl.Files {
-			t.Logf("   File %d: %s -> %s (%d MB)",
-				i+1, file.Source, file.Destination, file.Size/(1024*1024))
+			t.Logf("   File %d: s3://%s/%s -> %s (%s)",
+				i+1, file.S3Bucket, file.S3Key, file.DestinationPath, file.Description)
 		}
 	} else {
 		t.Error("❌ Files not parsed correctly")
@@ -1269,11 +1268,11 @@ description: "Template with strict checksum validation"
 base: ubuntu-22.04
 package_manager: apt
 files:
-  - source: "s3://prism-test/dataset.tar.gz"
-    destination: "/data/dataset.tar.gz"
-    checksum: "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    size: 1048576
-    checksum_required: true
+  - s3_bucket: "prism-test"
+    s3_key: "dataset.tar.gz"
+    destination_path: "/data/dataset.tar.gz"
+    checksum: true
+    required: true
 `
 
 	tempDir := t.TempDir()
@@ -1282,23 +1281,16 @@ files:
 	integration.AssertNoError(t, err, "Failed to write template")
 
 	parser := templates.NewTemplateParser()
-	tmpl, err := parser.ParseFile(templatePath)
+	tmpl, err := parser.ParseTemplateFile(templatePath)
 	integration.AssertNoError(t, err, "Template should parse")
 
 	// Validate checksum configuration
 	if len(tmpl.Files) > 0 {
 		file := tmpl.Files[0]
-		if file.Checksum != "" {
-			t.Logf("✅ Checksum configured: %s", file.Checksum)
-
-			// Verify checksum format
-			if strings.HasPrefix(file.Checksum, "sha256:") {
-				t.Logf("✅ Checksum format valid (SHA-256)")
-			} else if strings.HasPrefix(file.Checksum, "md5:") {
-				t.Logf("✅ Checksum format valid (MD5)")
-			} else {
-				t.Logf("⚠️  Checksum format: %s", file.Checksum)
-			}
+		// FileConfig.Checksum is a toggle for MD5 verification; templates do
+		// not carry an expected checksum value or algorithm.
+		if file.Checksum {
+			t.Logf("✅ Checksum verification enabled (MD5)")
 		} else {
 			t.Error("❌ Checksum not configured")
 		}
@@ -1322,46 +1314,9 @@ files:
 	t.Logf("      - Move file to destination")
 	t.Logf("      - Continue provisioning")
 
-	// ========================================
-	// Test: Multiple Checksum Algorithms
-	// ========================================
-
-	t.Logf("")
-	t.Logf("📋 Testing multiple checksum algorithm support")
-
-	multiChecksumTemplate := `
-name: "Multi-Checksum Template"
-description: "Template with multiple checksum algorithms"
-base: ubuntu-22.04
-package_manager: apt
-files:
-  - source: "s3://test/file1.tar.gz"
-    destination: "/data/file1.tar.gz"
-    checksum: "sha256:abc123..."
-  - source: "s3://test/file2.zip"
-    destination: "/data/file2.zip"
-    checksum: "md5:def456..."
-  - source: "s3://test/file3.tar"
-    destination: "/data/file3.tar"
-    checksum: "sha512:ghi789..."
-`
-
-	multiPath := filepath.Join(tempDir, "multi-checksum.yml")
-	err = os.WriteFile(multiPath, []byte(multiChecksumTemplate), 0644)
-	integration.AssertNoError(t, err, "Failed to write multi-checksum template")
-
-	tmpl, err = parser.ParseFile(multiPath)
-	integration.AssertNoError(t, err, "Multi-checksum template should parse")
-
-	var algorithms []string
-	for _, file := range tmpl.Files {
-		if strings.Contains(file.Checksum, ":") {
-			algo := strings.Split(file.Checksum, ":")[0]
-			algorithms = append(algorithms, algo)
-		}
-	}
-
-	t.Logf("✅ Checksum algorithms found: %v", algorithms)
+	// Multiple checksum algorithms (sha256/md5/sha512) are not supported:
+	// FileConfig.Checksum only toggles MD5 verification, so that scenario is
+	// omitted.
 
 	// ========================================
 	// Success Summary
@@ -1370,7 +1325,6 @@ files:
 	t.Logf("")
 	t.Logf("✅ Checksum Mismatch Detection Test Complete!")
 	t.Logf("   ✓ Checksum configuration validated")
-	t.Logf("   ✓ Multiple algorithms supported")
 	t.Logf("   ✓ Mismatch handling documented")
 	t.Logf("")
 	t.Logf("🎉 System validates file integrity!")
@@ -1423,7 +1377,7 @@ post_install: |
 	integration.AssertNoError(t, err, "Failed to write template")
 
 	parser := templates.NewTemplateParser()
-	tmpl, err := parser.ParseFile(failPath)
+	tmpl, err := parser.ParseTemplateFile(failPath)
 	integration.AssertNoError(t, err, "Template should parse")
 
 	if tmpl.PostInstall != "" {
@@ -1482,7 +1436,7 @@ post_install: |
 	err = os.WriteFile(timeoutPath, []byte(timeoutTemplate), 0644)
 	integration.AssertNoError(t, err, "Failed to write timeout template")
 
-	tmpl, err = parser.ParseFile(timeoutPath)
+	tmpl, err = parser.ParseTemplateFile(timeoutPath)
 	integration.AssertNoError(t, err, "Timeout template should parse")
 
 	t.Logf("✅ Timeout template configured")

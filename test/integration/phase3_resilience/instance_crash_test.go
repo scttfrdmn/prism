@@ -72,13 +72,13 @@ func TestInstanceCrashRecovery(t *testing.T) {
 	volumeName := integration.GenerateTestName("crash-test-volume")
 	t.Logf("Creating EFS volume: %s", volumeName)
 
-	volume, err := fixtures.CreateTestEFSVolume(t, registry, fixtures.CreateTestEFSVolumeOptions{
-		Name:      volumeName,
-		SizeGB:    100,
-		ProjectID: &project.ID,
+	// EFS is elastic (no size) and volume creation takes no project/description,
+	// so only the name is passed.
+	volume, err := fixtures.CreateTestVolume(t, registry, fixtures.CreateTestVolumeOptions{
+		Name: volumeName,
 	})
 	integration.AssertNoError(t, err, "Failed to create EFS volume")
-	t.Logf("✅ EFS volume created: %s", volume.ID)
+	t.Logf("✅ EFS volume created: %s", volume.FileSystemID)
 
 	// Step 3: Launch instance
 	instanceName := integration.GenerateTestName("crash-test-instance")
@@ -155,12 +155,12 @@ func TestInstanceCrashRecovery(t *testing.T) {
 	// Step 7: Verify EFS volume is still accessible
 	t.Logf("Checking if EFS volume survived instance crash...")
 
-	persistedVolume, err := ctx.Client.GetEFSVolume(context.Background(), volume.ID)
+	persistedVolume, err := ctx.Client.GetVolume(context.Background(), volume.Name)
 	integration.AssertNoError(t, err, "EFS volume should still be accessible")
-	integration.AssertEqual(t, volume.ID, persistedVolume.ID, "Volume ID should match")
+	integration.AssertEqual(t, volume.FileSystemID, persistedVolume.FileSystemID, "Volume filesystem ID should match")
 	integration.AssertEqual(t, "available", persistedVolume.State, "Volume should still be available")
 	t.Logf("✅ EFS volume persisted after instance crash")
-	t.Logf("   Volume ID: %s", persistedVolume.ID)
+	t.Logf("   Volume filesystem ID: %s", persistedVolume.FileSystemID)
 	t.Logf("   Volume state: %s", persistedVolume.State)
 
 	// ========================================
@@ -176,7 +176,7 @@ func TestInstanceCrashRecovery(t *testing.T) {
 	budget, err := ctx.Client.GetProjectBudgetStatus(context.Background(), project.ID)
 	integration.AssertNoError(t, err, "Should be able to get budget")
 
-	t.Logf("   Current spend: $%.4f", budget.CurrentSpend)
+	t.Logf("   Current spend: $%.4f", budget.SpentAmount)
 
 	// Calculate expected cost (very rough estimate)
 	// Instance ran from launch to stop (approximately)
@@ -187,8 +187,8 @@ func TestInstanceCrashRecovery(t *testing.T) {
 	t.Logf("   Instance lifetime: %.2f hours", instanceLifetime.Hours())
 	t.Logf("   Estimated cost: $%.4f", estimatedCost)
 
-	if budget.CurrentSpend > 0 {
-		t.Logf("✅ Budget tracking active (cost accrued: $%.4f)", budget.CurrentSpend)
+	if budget.SpentAmount > 0 {
+		t.Logf("✅ Budget tracking active (cost accrued: $%.4f)", budget.SpentAmount)
 	} else {
 		t.Logf("⚠️  No cost tracked yet (may need time to accumulate)")
 	}
@@ -280,9 +280,9 @@ func TestInstanceCrashRecovery(t *testing.T) {
 	// Step 11: Verify volume is still accessible (not cleaned up with instance)
 	t.Logf("Verifying EFS volume persists after instance termination...")
 
-	finalVolume, err := ctx.Client.GetEFSVolume(context.Background(), volume.ID)
+	finalVolume, err := ctx.Client.GetVolume(context.Background(), volume.Name)
 	integration.AssertNoError(t, err, "Volume should persist after instance termination")
-	integration.AssertEqual(t, volume.ID, finalVolume.ID, "Volume ID should match")
+	integration.AssertEqual(t, volume.FileSystemID, finalVolume.FileSystemID, "Volume filesystem ID should match")
 	t.Logf("✅ EFS volume persisted (state: %s)", finalVolume.State)
 
 	// Step 12: Verify project budget is final
@@ -290,12 +290,12 @@ func TestInstanceCrashRecovery(t *testing.T) {
 
 	finalBudget, err := ctx.Client.GetProjectBudgetStatus(context.Background(), project.ID)
 	integration.AssertNoError(t, err, "Should be able to get final budget")
-	t.Logf("   Final spend: $%.4f", finalBudget.CurrentSpend)
+	t.Logf("   Final spend: $%.4f", finalBudget.SpentAmount)
 
 	// Budget should not increase after termination
-	if finalBudget.CurrentSpend > budget.CurrentSpend+0.10 {
+	if finalBudget.SpentAmount > budget.SpentAmount+0.10 {
 		t.Logf("⚠️  Budget increased significantly after termination ($%.4f -> $%.4f)",
-			budget.CurrentSpend, finalBudget.CurrentSpend)
+			budget.SpentAmount, finalBudget.SpentAmount)
 	} else {
 		t.Logf("✅ Budget stable after termination")
 	}
@@ -444,7 +444,7 @@ func TestInstanceRecoveryNotifications(t *testing.T) {
 	// - Notification history can be queried
 
 	// For this test, we verify the API structure exists
-	_, err := ctx.Client.GetInstances(context.Background())
+	_, err := ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "API should be functional")
 
 	t.Logf("✅ Notification infrastructure available")

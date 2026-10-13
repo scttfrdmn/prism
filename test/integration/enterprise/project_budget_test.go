@@ -358,7 +358,7 @@ func TestProjectBudget_CostTracking_RealInstance(t *testing.T) {
 		Name:                instanceName,
 		Template:            "Ubuntu 22.04 Server",
 		Size:                "S",           // Small instance for testing
-		ProjectID:           proj.ID,       // Associate with project
+		ProjectID:           &proj.ID,      // Associate with project
 		FundingAllocationID: allocation.ID, // Specify which allocation to charge
 	})
 	require.NoError(t, err, "Failed to create test instance")

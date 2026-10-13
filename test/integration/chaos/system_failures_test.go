@@ -67,7 +67,7 @@ func TestDaemonCrashDuringOperation(t *testing.T) {
 	t.Logf("✅ Found daemon process: PID %d", daemonPID)
 
 	// Verify daemon is responsive
-	_, err = ctx.Client.GetInstances(context.Background())
+	_, err = ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Daemon should be responsive before test")
 	t.Logf("✅ Daemon is responsive")
 
@@ -88,9 +88,9 @@ func TestDaemonCrashDuringOperation(t *testing.T) {
 	t.Logf("✅ Project created: %s", project.ID)
 
 	// Record state before crash
-	preState, err := ctx.Client.GetInstances(context.Background())
+	preState, err := ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Failed to get pre-crash state")
-	t.Logf("✅ Pre-crash state recorded: %d instances", len(preState))
+	t.Logf("✅ Pre-crash state recorded: %d instances", len(preState.Instances))
 
 	// ========================================
 	// Scenario: Simulate Daemon Crash (SIGKILL)
@@ -189,7 +189,7 @@ func TestDaemonCrashDuringOperation(t *testing.T) {
 	t.Logf("Waiting for daemon to initialize...")
 	daemonReady := false
 	for i := 0; i < 30; i++ { // Wait up to 30 seconds
-		_, err := ctx.Client.GetInstances(context.Background())
+		_, err := ctx.Client.ListInstances(context.Background())
 		if err == nil {
 			daemonReady = true
 			t.Logf("✅ Daemon is responsive (after %d seconds)", i+1)
@@ -210,9 +210,9 @@ func TestDaemonCrashDuringOperation(t *testing.T) {
 	t.Logf("📋 Phase 6: Verifying state recovery")
 
 	// Get post-crash state
-	postState, err := ctx.Client.GetInstances(context.Background())
+	postState, err := ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Failed to get post-crash state")
-	t.Logf("✅ Post-crash state retrieved: %d instances", len(postState))
+	t.Logf("✅ Post-crash state retrieved: %d instances", len(postState.Instances))
 
 	// Verify project still exists
 	recoveredProject, err := ctx.Client.GetProject(context.Background(), project.ID)
@@ -222,10 +222,10 @@ func TestDaemonCrashDuringOperation(t *testing.T) {
 	t.Logf("✅ Project recovered: %s", project.Name)
 
 	// Compare states
-	if len(postState) != len(preState) {
-		t.Logf("⚠️  Instance count changed: %d -> %d", len(preState), len(postState))
+	if len(postState.Instances) != len(preState.Instances) {
+		t.Logf("⚠️  Instance count changed: %d -> %d", len(preState.Instances), len(postState.Instances))
 	} else {
-		t.Logf("✅ Instance count consistent: %d instances", len(postState))
+		t.Logf("✅ Instance count consistent: %d instances", len(postState.Instances))
 	}
 
 	// ========================================
@@ -336,12 +336,7 @@ func TestOutOfMemoryHandling(t *testing.T) {
 	t.Logf("📋 Testing memory limit awareness")
 
 	// Check if we can detect system memory limits
-	var sysinfo syscall.Sysinfo_t
-	err := syscall.Sysinfo(&sysinfo)
-	if err == nil {
-		totalRAM := sysinfo.Totalram * uint64(sysinfo.Unit)
-		freeRAM := sysinfo.Freeram * uint64(sysinfo.Unit)
-
+	if totalRAM, freeRAM, ok := systemMemory(); ok {
 		t.Logf("System memory:")
 		t.Logf("   Total: %.2f GB", float64(totalRAM)/(1024*1024*1024))
 		t.Logf("   Free: %.2f GB", float64(freeRAM)/(1024*1024*1024))

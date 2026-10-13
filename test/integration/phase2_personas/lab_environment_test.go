@@ -64,18 +64,18 @@ func TestLabEnvironment_SmithLab(t *testing.T) {
 			BudgetPeriod: types.BudgetPeriodMonthly,
 			AlertThresholds: []types.BudgetAlert{
 				{
-					Threshold: 80.0,
-					AlertType: types.AlertTypeEmail,
+					Threshold: 0.80,
+					Type:      types.BudgetAlertEmail,
 					Message:   "Lab approaching monthly budget limit",
 					Enabled:   true,
 				},
 			},
 			AutoActions: []types.BudgetAutoAction{
 				{
-					Threshold:  100.0,
-					ActionType: types.ActionTypePreventLaunch,
-					Message:    "Monthly lab budget exceeded",
-					Enabled:    true,
+					Threshold: 1.00,
+					Action:    types.BudgetActionPreventLaunch,
+					// Monthly lab budget exceeded
+					Enabled: true,
 				},
 			},
 		},
@@ -86,12 +86,11 @@ func TestLabEnvironment_SmithLab(t *testing.T) {
 	// Step 2: Add lab manager as member
 	t.Logf("👥 Adding lab manager: Dr. Torres")
 
-	labManagerMember, err := ctx.Client.AddProjectMember(context.Background(), labProject.ID, types.ProjectMember{
-		Email: "michael.torres@university.edu",
-		Role:  types.RoleAdmin, // Lab manager has admin rights
-	})
+	// Lab manager has admin rights
+	err = fixtures.CreateTestProjectMember(t, registry, labProject.ID, "michael.torres@university.edu", types.ProjectRoleAdmin)
 	integration.AssertNoError(t, err, "Failed to add lab manager")
-	integration.AssertEqual(t, types.RoleAdmin, labManagerMember.Role, "Lab manager should have admin role")
+	labManagerMember := getProjectMember(t, ctx, labProject.ID, "michael.torres@university.edu")
+	integration.AssertEqual(t, types.ProjectRoleAdmin, labManagerMember.Role, "Lab manager should have admin role")
 	t.Logf("✅ Lab manager added with admin role")
 
 	// ========================================
@@ -113,8 +112,8 @@ func TestLabEnvironment_SmithLab(t *testing.T) {
 			BudgetPeriod: types.BudgetPeriodMonthly,
 			AlertThresholds: []types.BudgetAlert{
 				{
-					Threshold: 75.0,
-					AlertType: types.AlertTypeEmail,
+					Threshold: 0.75,
+					Type:      types.BudgetAlertEmail,
 					Message:   "Postdoc project approaching budget limit",
 					Enabled:   true,
 				},
@@ -143,8 +142,8 @@ func TestLabEnvironment_SmithLab(t *testing.T) {
 			BudgetPeriod: types.BudgetPeriodMonthly,
 			AlertThresholds: []types.BudgetAlert{
 				{
-					Threshold: 90.0,
-					AlertType: types.AlertTypeEmail,
+					Threshold: 0.90,
+					Type:      types.BudgetAlertEmail,
 					Message:   "Graduate student approaching budget limit - talk to advisor",
 					Enabled:   true,
 				},
@@ -169,18 +168,18 @@ func TestLabEnvironment_SmithLab(t *testing.T) {
 			BudgetPeriod: types.BudgetPeriodMonthly,
 			AlertThresholds: []types.BudgetAlert{
 				{
-					Threshold: 80.0,
-					AlertType: types.AlertTypeEmail,
+					Threshold: 0.80,
+					Type:      types.BudgetAlertEmail,
 					Message:   "Rotation student approaching budget limit",
 					Enabled:   true,
 				},
 			},
 			AutoActions: []types.BudgetAutoAction{
 				{
-					Threshold:  100.0,
-					ActionType: types.ActionTypePreventLaunch,
-					Message:    "Budget limit reached - contact lab manager",
-					Enabled:    true,
+					Threshold: 1.00,
+					Action:    types.BudgetActionPreventLaunch,
+					// Budget limit reached - contact lab manager
+					Enabled: true,
 				},
 			},
 		},
@@ -196,14 +195,13 @@ func TestLabEnvironment_SmithLab(t *testing.T) {
 	t.Logf("💾 Creating shared lab storage (EFS)")
 
 	sharedStorageName := integration.GenerateTestName("smith-lab-shared-data")
-	sharedStorage, err := fixtures.CreateTestEFSVolume(t, registry, fixtures.CreateTestEFSVolumeOptions{
-		Name:        sharedStorageName,
-		SizeGB:      1000, // 1TB shared storage
-		ProjectID:   &labProject.ID,
-		Description: "Shared datasets and analysis results",
+	// EFS is elastic (no size) and volume creation takes no project or
+	// description, so only the name is passed.
+	sharedStorage, err := fixtures.CreateTestVolume(t, registry, fixtures.CreateTestVolumeOptions{
+		Name: sharedStorageName,
 	})
 	integration.AssertNoError(t, err, "Failed to create shared storage")
-	t.Logf("✅ Shared lab storage created: %s (1TB)", sharedStorage.Name)
+	t.Logf("✅ Shared lab storage created: %s", sharedStorage.Name)
 
 	// ========================================
 	// Scenario: Lab Members Launch Workspaces
@@ -263,7 +261,7 @@ func TestLabEnvironment_SmithLab(t *testing.T) {
 	integration.AssertNoError(t, err, "Failed to list instances")
 
 	labInstanceCount := 0
-	for _, inst := range allInstances {
+	for _, inst := range allInstances.Instances {
 		// Count instances in lab projects
 		if inst.ProjectID == labProject.ID ||
 			inst.ProjectID == postdocProject.ID ||
@@ -292,24 +290,24 @@ func TestLabEnvironment_SmithLab(t *testing.T) {
 	// Check postdoc project budget
 	postdocBudget, err := ctx.Client.GetProjectBudgetStatus(context.Background(), postdocProject.ID)
 	integration.AssertNoError(t, err, "Failed to get postdoc budget")
-	t.Logf("   Dr. Park (postdoc): $%.2f / $%.2f", postdocBudget.CurrentSpend, postdocMonthlyLimit)
+	t.Logf("   Dr. Park (postdoc): $%.2f / $%.2f", postdocBudget.SpentAmount, postdocMonthlyLimit)
 
 	// Check James's budget
 	jamesBudget, err := ctx.Client.GetProjectBudgetStatus(context.Background(), jamesProject.ID)
 	integration.AssertNoError(t, err, "Failed to get James's budget")
-	t.Logf("   James (Year 4): $%.2f / $%.2f", jamesBudget.CurrentSpend, jamesMonthlyLimit)
+	t.Logf("   James (Year 4): $%.2f / $%.2f", jamesBudget.SpentAmount, jamesMonthlyLimit)
 
 	// Check Maria's budget
 	mariaBudget, err := ctx.Client.GetProjectBudgetStatus(context.Background(), mariaProject.ID)
 	integration.AssertNoError(t, err, "Failed to get Maria's budget")
-	t.Logf("   Maria (Year 2): $%.2f / $%.2f", mariaBudget.CurrentSpend, mariaMonthlyLimit)
+	t.Logf("   Maria (Year 2): $%.2f / $%.2f", mariaBudget.SpentAmount, mariaMonthlyLimit)
 
 	// Check overall lab budget
 	labBudget, err := ctx.Client.GetProjectBudgetStatus(context.Background(), labProject.ID)
 	integration.AssertNoError(t, err, "Failed to get lab budget")
-	t.Logf("   Lab Total: $%.2f / $%.2f", labBudget.CurrentSpend, totalLabBudget)
+	t.Logf("   Lab Total: $%.2f / $%.2f", labBudget.SpentAmount, totalLabBudget)
 
-	totalAllocatedSpend := postdocBudget.CurrentSpend + jamesBudget.CurrentSpend + mariaBudget.CurrentSpend
+	totalAllocatedSpend := postdocBudget.SpentAmount + jamesBudget.SpentAmount + mariaBudget.SpentAmount
 	t.Logf("   Sub-projects total: $%.2f", totalAllocatedSpend)
 
 	// ========================================

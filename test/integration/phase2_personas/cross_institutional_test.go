@@ -72,18 +72,18 @@ func TestCrossInstitutional_NeuroscienceConsortium(t *testing.T) {
 			BudgetPeriod: types.BudgetPeriodMonthly,
 			AlertThresholds: []types.BudgetAlert{
 				{
-					Threshold: 80.0,
-					AlertType: types.AlertTypeEmail,
+					Threshold: 0.80,
+					Type:      types.BudgetAlertEmail,
 					Message:   "Consortium approaching monthly budget limit",
 					Enabled:   true,
 				},
 			},
 			AutoActions: []types.BudgetAutoAction{
 				{
-					Threshold:  100.0,
-					ActionType: types.ActionTypePreventLaunch,
-					Message:    "Monthly consortium budget exhausted - contact PI",
-					Enabled:    true,
+					Threshold: 1.00,
+					Action:    types.BudgetActionPreventLaunch,
+					// Monthly consortium budget exhausted - contact PI
+					Enabled: true,
 				},
 			},
 		},
@@ -95,16 +95,10 @@ func TestCrossInstitutional_NeuroscienceConsortium(t *testing.T) {
 	t.Logf("💾 Creating shared consortium data storage (50TB)")
 
 	sharedStorageName := integration.GenerateTestName("consortium-neuroimaging-data")
-	sharedStorage, err := fixtures.CreateTestEFSVolume(t, registry, fixtures.CreateTestEFSVolumeOptions{
-		Name:        sharedStorageName,
-		SizeGB:      1000, // 1TB for test (represents 50TB in production)
-		ProjectID:   &consortiumProject.ID,
-		Description: "Shared neuroimaging dataset - 50TB consortium data",
-		Tags: map[string]string{
-			"consortium": "neuroscience-stanford-mit-berkeley",
-			"grant":      "NIH-R01-2023",
-			"compliance": "institutional-data-sharing-agreement",
-		},
+	// EFS is elastic (no size) and volume creation takes no project, description
+	// or tags, so only the name is passed.
+	sharedStorage, err := fixtures.CreateTestVolume(t, registry, fixtures.CreateTestVolumeOptions{
+		Name: sharedStorageName,
 	})
 	integration.AssertNoError(t, err, "Failed to create shared storage")
 	t.Logf("✅ Shared consortium storage created (accessible to all partners)")
@@ -116,32 +110,27 @@ func TestCrossInstitutional_NeuroscienceConsortium(t *testing.T) {
 	// Step 3: Add MIT Co-Investigator (algorithm development)
 	t.Logf("🤝 Adding MIT Co-Investigator: Dr. Johnson")
 
-	mitCollaborator, err := ctx.Client.AddProjectMember(context.Background(), consortiumProject.ID, types.ProjectMember{
-		Email: "michael.johnson@mit.edu",
-		Role:  types.RoleContributor, // Can launch workspaces, access data
-	})
+	// "member" role: can launch workspaces, access data
+	err = fixtures.CreateTestProjectMember(t, registry, consortiumProject.ID, "michael.johnson@mit.edu", types.ProjectRoleMember)
 	integration.AssertNoError(t, err, "Failed to add MIT collaborator")
-	integration.AssertEqual(t, types.RoleContributor, mitCollaborator.Role, "MIT collaborator should have contributor role")
+	mitCollaborator := getProjectMember(t, ctx, consortiumProject.ID, "michael.johnson@mit.edu")
+	integration.AssertEqual(t, types.ProjectRoleMember, mitCollaborator.Role, "MIT collaborator should have member role")
 	t.Logf("✅ MIT collaborator added (algorithm development)")
 
 	// Step 4: Add UC Berkeley Co-Investigator (validation)
 	t.Logf("🤝 Adding Berkeley Co-Investigator: Dr. Lee")
 
-	berkeleyCollaborator, err := ctx.Client.AddProjectMember(context.Background(), consortiumProject.ID, types.ProjectMember{
-		Email: "sarah.lee@berkeley.edu",
-		Role:  types.RoleContributor, // Can launch workspaces, access data
-	})
+	// "member" role: can launch workspaces, access data
+	err = fixtures.CreateTestProjectMember(t, registry, consortiumProject.ID, "sarah.lee@berkeley.edu", types.ProjectRoleMember)
 	integration.AssertNoError(t, err, "Failed to add Berkeley collaborator")
-	integration.AssertEqual(t, types.RoleContributor, berkeleyCollaborator.Role, "Berkeley collaborator should have contributor role")
+	berkeleyCollaborator := getProjectMember(t, ctx, consortiumProject.ID, "sarah.lee@berkeley.edu")
+	integration.AssertEqual(t, types.ProjectRoleMember, berkeleyCollaborator.Role, "Berkeley collaborator should have member role")
 	t.Logf("✅ Berkeley collaborator added (validation)")
 
 	// Step 5: Add Stanford postdoc (data integration)
 	t.Logf("👨‍🔬 Adding Stanford postdoc: Dr. Chen")
 
-	stanfordPostdoc, err := ctx.Client.AddProjectMember(context.Background(), consortiumProject.ID, types.ProjectMember{
-		Email: "david.chen@stanford.edu",
-		Role:  types.RoleContributor,
-	})
+	err = fixtures.CreateTestProjectMember(t, registry, consortiumProject.ID, "david.chen@stanford.edu", types.ProjectRoleMember)
 	integration.AssertNoError(t, err, "Failed to add Stanford postdoc")
 	t.Logf("✅ Stanford postdoc added (integration)")
 
@@ -158,12 +147,6 @@ func TestCrossInstitutional_NeuroscienceConsortium(t *testing.T) {
 		Name:      mitInstanceName,
 		Size:      "L", // GPU instance for ML development
 		ProjectID: &consortiumProject.ID,
-		Tags: map[string]string{
-			"institution":  "MIT",
-			"collaborator": "michael.johnson@mit.edu",
-			"task":         "algorithm-development",
-			"grant":        "NIH-R01-2023",
-		},
 	})
 	integration.AssertNoError(t, err, "Failed to launch MIT workspace")
 	integration.AssertEqual(t, "running", mitInstance.State, "MIT workspace should be running")
@@ -178,12 +161,6 @@ func TestCrossInstitutional_NeuroscienceConsortium(t *testing.T) {
 		Name:      berkeleyInstanceName,
 		Size:      "M", // CPU instance for validation
 		ProjectID: &consortiumProject.ID,
-		Tags: map[string]string{
-			"institution":  "UC-Berkeley",
-			"collaborator": "sarah.lee@berkeley.edu",
-			"task":         "validation",
-			"grant":        "NIH-R01-2023",
-		},
 	})
 	integration.AssertNoError(t, err, "Failed to launch Berkeley workspace")
 	integration.AssertEqual(t, "running", berkeleyInstance.State, "Berkeley workspace should be running")
@@ -198,12 +175,6 @@ func TestCrossInstitutional_NeuroscienceConsortium(t *testing.T) {
 		Name:      stanfordInstanceName,
 		Size:      "M", // CPU instance for integration
 		ProjectID: &consortiumProject.ID,
-		Tags: map[string]string{
-			"institution":  "Stanford",
-			"collaborator": "david.chen@stanford.edu",
-			"task":         "integration",
-			"grant":        "NIH-R01-2023",
-		},
 	})
 	integration.AssertNoError(t, err, "Failed to launch Stanford workspace")
 	integration.AssertEqual(t, "running", stanfordInstance.State, "Stanford workspace should be running")
@@ -223,7 +194,7 @@ func TestCrossInstitutional_NeuroscienceConsortium(t *testing.T) {
 	integration.AssertNoError(t, err, "Failed to get consortium budget")
 
 	t.Logf("   Total spend: $%.2f / $%.2f monthly budget",
-		consortiumBudget.CurrentSpend, monthlyBudget)
+		consortiumBudget.SpentAmount, monthlyBudget)
 
 	// List all instances and group by institution
 	allInstances, err := ctx.Client.ListInstances(context.Background())
@@ -235,16 +206,17 @@ func TestCrossInstitutional_NeuroscienceConsortium(t *testing.T) {
 		"Stanford": 0,
 	}
 
-	for _, inst := range allInstances {
+	// Instances carry no tags, so attribute each consortium instance to its
+	// institution by the workspace name it was launched with.
+	institutionByName := map[string]string{
+		mitInstanceName:      "MIT",
+		berkeleyInstanceName: "Berkeley",
+		stanfordInstanceName: "Stanford",
+	}
+	for _, inst := range allInstances.Instances {
 		if inst.ProjectID == consortiumProject.ID {
-			if inst.Tags != nil {
-				if institution, ok := inst.Tags["institution"]; ok {
-					if institution == "UC-Berkeley" {
-						institutionCounts["Berkeley"]++
-					} else {
-						institutionCounts[institution]++
-					}
-				}
+			if institution, ok := institutionByName[inst.Name]; ok {
+				institutionCounts[institution]++
 			}
 		}
 	}
@@ -269,14 +241,14 @@ func TestCrossInstitutional_NeuroscienceConsortium(t *testing.T) {
 	// Step 10: Verify all collaborators can access shared storage
 	t.Logf("💾 Verifying shared storage accessibility")
 
-	storageVolumes, err := ctx.Client.ListEFSVolumes(context.Background())
+	storageVolumes, err := ctx.Client.ListVolumes(context.Background())
 	integration.AssertNoError(t, err, "Failed to list EFS volumes")
 
 	foundSharedStorage := false
 	for _, vol := range storageVolumes {
-		if vol.ID == sharedStorage.ID {
+		if vol.FileSystemID == sharedStorage.FileSystemID {
 			foundSharedStorage = true
-			t.Logf("   Shared storage: %s (%dGB)", vol.Name, vol.SizeGB)
+			t.Logf("   Shared storage: %s (%s)", vol.Name, vol.FileSystemID)
 			break
 		}
 	}
@@ -299,7 +271,7 @@ func TestCrossInstitutional_NeuroscienceConsortium(t *testing.T) {
 
 	t.Logf("   Project duration: 18 months")
 	t.Logf("   Total budget allocated: $%.2f", 18*monthlyBudget)
-	t.Logf("   Current spend: $%.2f", finalBudget.CurrentSpend)
+	t.Logf("   Current spend: $%.2f", finalBudget.SpentAmount)
 
 	// List all project members for final report
 	projectMembers, err := ctx.Client.GetProjectMembers(context.Background(), consortiumProject.ID)
@@ -307,7 +279,7 @@ func TestCrossInstitutional_NeuroscienceConsortium(t *testing.T) {
 
 	t.Logf("   Collaborators: %d", len(projectMembers))
 	for _, member := range projectMembers {
-		t.Logf("     - %s (%s)", member.Email, member.Role)
+		t.Logf("     - %s (%s)", member.UserID, member.Role)
 	}
 
 	// Verify all expected collaborators are present

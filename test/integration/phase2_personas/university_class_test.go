@@ -60,27 +60,27 @@ func TestUniversityClass_CS229MachineLearning(t *testing.T) {
 		Owner:       "jennifer.martinez@university.edu",
 		Budget: &fixtures.TestBudgetOptions{
 			TotalBudget:  semesterBudget,
-			BudgetPeriod: types.BudgetPeriodCustom, // Semester-based
+			BudgetPeriod: types.BudgetPeriodProject, // Semester-based (project-lifetime budget)
 			AlertThresholds: []types.BudgetAlert{
 				{
-					Threshold: 75.0,
-					AlertType: types.AlertTypeEmail,
+					Threshold: 0.75,
+					Type:      types.BudgetAlertEmail,
 					Message:   "Class using 75% of semester budget",
 					Enabled:   true,
 				},
 				{
-					Threshold: 90.0,
-					AlertType: types.AlertTypeEmail,
+					Threshold: 0.90,
+					Type:      types.BudgetAlertEmail,
 					Message:   "Class approaching semester budget limit",
 					Enabled:   true,
 				},
 			},
 			AutoActions: []types.BudgetAutoAction{
 				{
-					Threshold:  100.0,
-					ActionType: types.ActionTypePreventLaunch,
-					Message:    "Semester budget exhausted - contact IT department",
-					Enabled:    true,
+					Threshold: 1.00,
+					Action:    types.BudgetActionPreventLaunch,
+					// Semester budget exhausted - contact IT department
+					Enabled: true,
 				},
 			},
 		},
@@ -91,30 +91,25 @@ func TestUniversityClass_CS229MachineLearning(t *testing.T) {
 	// Step 2: Add head TA with admin access
 	t.Logf("👥 Adding head TA: Alex Thompson")
 
-	headTA, err := ctx.Client.AddProjectMember(context.Background(), classProject.ID, types.ProjectMember{
-		Email: "alex.thompson@university.edu",
-		Role:  types.RoleAdmin, // Head TA has admin rights (can SSH, debug)
-	})
+	// Head TA has admin rights (can SSH, debug)
+	err = fixtures.CreateTestProjectMember(t, registry, classProject.ID, "alex.thompson@university.edu", types.ProjectRoleAdmin)
 	integration.AssertNoError(t, err, "Failed to add head TA")
-	integration.AssertEqual(t, types.RoleAdmin, headTA.Role, "Head TA should have admin role")
+	headTA := getProjectMember(t, ctx, classProject.ID, "alex.thompson@university.edu")
+	integration.AssertEqual(t, types.ProjectRoleAdmin, headTA.Role, "Head TA should have admin role")
 	t.Logf("✅ Head TA added with admin role (SSH access)")
 
-	// Step 3: Add section TAs with contributor access
+	// Step 3: Add section TAs with read-only (viewer) access
 	t.Logf("👥 Adding section TAs: Priya & Kevin")
 
-	sectionTA1, err := ctx.Client.AddProjectMember(context.Background(), classProject.ID, types.ProjectMember{
-		Email: "priya.sharma@university.edu",
-		Role:  types.RoleContributor, // Section TAs have read-only
-	})
+	// Section TAs have read-only access
+	err = fixtures.CreateTestProjectMember(t, registry, classProject.ID, "priya.sharma@university.edu", types.ProjectRoleViewer)
 	integration.AssertNoError(t, err, "Failed to add section TA 1")
-	integration.AssertEqual(t, types.RoleContributor, sectionTA1.Role, "Section TA should have contributor role")
+	sectionTA1 := getProjectMember(t, ctx, classProject.ID, "priya.sharma@university.edu")
+	integration.AssertEqual(t, types.ProjectRoleViewer, sectionTA1.Role, "Section TA should have viewer role")
 
-	sectionTA2, err := ctx.Client.AddProjectMember(context.Background(), classProject.ID, types.ProjectMember{
-		Email: "kevin.wong@university.edu",
-		Role:  types.RoleContributor,
-	})
+	err = fixtures.CreateTestProjectMember(t, registry, classProject.ID, "kevin.wong@university.edu", types.ProjectRoleViewer)
 	integration.AssertNoError(t, err, "Failed to add section TA 2")
-	t.Logf("✅ Section TAs added with contributor role (read-only)")
+	t.Logf("✅ Section TAs added with viewer role (read-only)")
 
 	// ========================================
 	// Scenario: Week 1 - Student Onboarding
@@ -151,11 +146,6 @@ func TestUniversityClass_CS229MachineLearning(t *testing.T) {
 			Name:      instanceName,
 			Size:      "S", // t3.medium for students (~$0.04/hour)
 			ProjectID: &classProject.ID,
-			Tags: map[string]string{
-				"student": email,
-				"course":  "CS229",
-				"term":    "Fall2024",
-			},
 		})
 		integration.AssertNoError(t, err, fmt.Sprintf("Failed to launch workspace for %s", email))
 		integration.AssertEqual(t, "running", instance.State, "Student workspace should be running")
@@ -200,16 +190,16 @@ func TestUniversityClass_CS229MachineLearning(t *testing.T) {
 	classBudget, err := ctx.Client.GetProjectBudgetStatus(context.Background(), classProject.ID)
 	integration.AssertNoError(t, err, "Failed to get class budget")
 
-	t.Logf("   Total spend: $%.2f / $%.2f semester budget", classBudget.CurrentSpend, semesterBudget)
+	t.Logf("   Total spend: $%.2f / $%.2f semester budget", classBudget.SpentAmount, semesterBudget)
 	t.Logf("   Students active: %d", len(studentInstances))
 
 	// Calculate per-student average
-	if classBudget.CurrentSpend > 0 {
-		avgPerStudent := classBudget.CurrentSpend / float64(len(studentInstances))
+	if classBudget.SpentAmount > 0 {
+		avgPerStudent := classBudget.SpentAmount / float64(len(studentInstances))
 		t.Logf("   Average per student: $%.2f", avgPerStudent)
 
 		// Verify we're on track (shouldn't exceed budget)
-		if classBudget.CurrentSpend > (semesterBudget * 0.5) {
+		if classBudget.SpentAmount > (semesterBudget * 0.5) {
 			t.Logf("⚠️  Warning: Mid-semester spend higher than expected")
 		}
 	}
@@ -221,19 +211,14 @@ func TestUniversityClass_CS229MachineLearning(t *testing.T) {
 	// Step 8: Configure auto-hibernation for cost savings
 	t.Logf("💤 Prof. Martinez configures auto-hibernation (nights & weekends)")
 
-	idlePolicyName := integration.GenerateTestName("cs229-auto-hibernate")
-	idlePolicy, err := fixtures.CreateTestIdlePolicy(t, registry, fixtures.CreateTestIdlePolicyOptions{
-		Name:        idlePolicyName,
-		Description: "Auto-hibernate student workspaces after 2 hours idle",
-		IdleTimeout: 2 * time.Hour,
-		Action:      types.IdleActionHibernate,
-		ProjectID:   &classProject.ID,
-	})
-	integration.AssertNoError(t, err, "Failed to create idle policy")
-	t.Logf("✅ Idle hibernation policy created")
+	// Custom idle policies cannot be created through the API; use the built-in
+	// "balanced" policy template (night hibernation + idle hibernation).
+	idlePolicy, err := ctx.Client.GetIdlePolicy(context.Background(), "balanced")
+	integration.AssertNoError(t, err, "Failed to get idle policy")
+	t.Logf("✅ Idle hibernation policy selected: %s", idlePolicy.Name)
 
 	// Apply policy to first student's instance (represents applying to all)
-	err = ctx.Client.ApplyIdlePolicy(context.Background(), studentInstances[0].ID, idlePolicy.ID)
+	err = ctx.Client.ApplyIdlePolicy(context.Background(), studentInstances[0].Name, idlePolicy.ID)
 	integration.AssertNoError(t, err, "Failed to apply idle policy")
 	t.Logf("✅ Idle policy applied to student workspaces")
 
@@ -248,7 +233,7 @@ func TestUniversityClass_CS229MachineLearning(t *testing.T) {
 	integration.AssertNoError(t, err, "Failed to list instances")
 
 	classInstanceCount := 0
-	for _, inst := range allInstances {
+	for _, inst := range allInstances.Instances {
 		if inst.ProjectID == classProject.ID {
 			classInstanceCount++
 			t.Logf("   - %s: %s (state: %s)", inst.Name, inst.State, inst.State)
@@ -268,17 +253,17 @@ func TestUniversityClass_CS229MachineLearning(t *testing.T) {
 	finalBudget, err := ctx.Client.GetProjectBudgetStatus(context.Background(), classProject.ID)
 	integration.AssertNoError(t, err, "Failed to get final budget")
 
-	t.Logf("   Final spend: $%.2f / $%.2f semester budget", finalBudget.CurrentSpend, semesterBudget)
-	t.Logf("   Budget utilization: %.1f%%", (finalBudget.CurrentSpend/semesterBudget)*100)
+	t.Logf("   Final spend: $%.2f / $%.2f semester budget", finalBudget.SpentAmount, semesterBudget)
+	t.Logf("   Budget utilization: %.1f%%", (finalBudget.SpentAmount/semesterBudget)*100)
 
-	budgetRemaining := semesterBudget - finalBudget.CurrentSpend
+	budgetRemaining := semesterBudget - finalBudget.SpentAmount
 	if budgetRemaining > 0 {
 		t.Logf("   Budget remaining: $%.2f (%.1f%%)", budgetRemaining, (budgetRemaining/semesterBudget)*100)
 	}
 
 	// Verify budget was not exceeded
-	if finalBudget.CurrentSpend > semesterBudget {
-		t.Errorf("Budget exceeded! Spent $%.2f of $%.2f budget", finalBudget.CurrentSpend, semesterBudget)
+	if finalBudget.SpentAmount > semesterBudget {
+		t.Errorf("Budget exceeded! Spent $%.2f of $%.2f budget", finalBudget.SpentAmount, semesterBudget)
 	}
 
 	// ========================================

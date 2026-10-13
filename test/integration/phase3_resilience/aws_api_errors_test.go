@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	prismproject "github.com/scttfrdmn/prism/pkg/project"
 	"github.com/scttfrdmn/prism/test/fixtures"
 	"github.com/scttfrdmn/prism/test/integration"
 )
@@ -77,7 +78,7 @@ func TestAWSAPIErrorHandling(t *testing.T) {
 	}
 
 	// Verify daemon is still responsive after error
-	_, err = ctx.Client.GetInstances(context.Background())
+	_, err = ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Daemon should still be responsive after handling not-found error")
 	t.Logf("✅ Daemon remains responsive after not-found error")
 
@@ -123,7 +124,7 @@ func TestAWSAPIErrorHandling(t *testing.T) {
 		}
 
 		// Verify daemon is still responsive
-		_, err = ctx.Client.GetInstances(context.Background())
+		_, err = ctx.Client.ListInstances(context.Background())
 		integration.AssertNoError(t, err, "Daemon should remain responsive after launch failure")
 		t.Logf("✅ Daemon remains responsive after launch failure")
 
@@ -151,10 +152,10 @@ func TestAWSAPIErrorHandling(t *testing.T) {
 		volumeName := integration.GenerateTestName("rate-limit-test-vol")
 		t.Logf("   Creating volume %d/%d: %s", i+1, volumeCount, volumeName)
 
-		volume, err := fixtures.CreateTestEFSVolume(t, registry, fixtures.CreateTestEFSVolumeOptions{
-			Name:      volumeName,
-			SizeGB:    10, // Small volume
-			ProjectID: &project.ID,
+		// EFS is elastic (no size) and volume creation takes no project/description,
+		// so only the name is passed.
+		volume, err := fixtures.CreateTestVolume(t, registry, fixtures.CreateTestVolumeOptions{
+			Name: volumeName,
 		})
 
 		if err != nil {
@@ -175,7 +176,7 @@ func TestAWSAPIErrorHandling(t *testing.T) {
 			}
 		} else {
 			createdVolumes++
-			t.Logf("   ✅ Volume created: %s", volume.ID)
+			t.Logf("   ✅ Volume created: %s", volume.FileSystemID)
 
 			// Small delay between creations to avoid rate limiting
 			if i < volumeCount-1 {
@@ -198,7 +199,7 @@ func TestAWSAPIErrorHandling(t *testing.T) {
 	defer cancel()
 
 	t.Logf("Listing instances with 30-second timeout...")
-	instances, err := ctx.Client.GetInstances(timeoutCtx)
+	instances, err := ctx.Client.ListInstances(timeoutCtx)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "deadline") {
@@ -208,11 +209,11 @@ func TestAWSAPIErrorHandling(t *testing.T) {
 			t.Logf("⚠️  Operation failed: %v", err)
 		}
 	} else {
-		t.Logf("✅ Listed %d instances successfully", len(instances))
+		t.Logf("✅ Listed %d instances successfully", len(instances.Instances))
 	}
 
 	// Verify daemon is still responsive
-	_, err = ctx.Client.GetInstances(context.Background())
+	_, err = ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Daemon should remain responsive after timeout test")
 	t.Logf("✅ Daemon remains responsive")
 
@@ -226,11 +227,7 @@ func TestAWSAPIErrorHandling(t *testing.T) {
 	// Try to create project with invalid data
 	t.Logf("Attempting to create project with empty name...")
 
-	invalidProject, err := ctx.Client.CreateProject(context.Background(), struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Owner       string `json:"owner"`
-	}{
+	invalidProject, err := ctx.Client.CreateProject(context.Background(), prismproject.CreateProjectRequest{
 		Name:        "", // Invalid: empty name
 		Description: "Invalid project test",
 		Owner:       "test@example.com",
@@ -329,15 +326,15 @@ func TestAWSRetryLogic(t *testing.T) {
 	t.Logf("Performing operations that may require retries...")
 
 	// List operations (may be retried if AWS is slow)
-	_, err := ctx.Client.GetInstances(context.Background())
+	_, err := ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "List instances should succeed with retries")
 	t.Logf("✅ List instances succeeded (retries worked if needed)")
 
-	_, err = ctx.Client.ListProjects(context.Background())
+	_, err = ctx.Client.ListProjects(context.Background(), nil)
 	integration.AssertNoError(t, err, "List projects should succeed with retries")
 	t.Logf("✅ List projects succeeded (retries worked if needed)")
 
-	_, err = ctx.Client.ListEFSVolumes(context.Background())
+	_, err = ctx.Client.ListVolumes(context.Background())
 	integration.AssertNoError(t, err, "List volumes should succeed with retries")
 	t.Logf("✅ List volumes succeeded (retries worked if needed)")
 
@@ -363,9 +360,9 @@ func TestAWSErrorRecovery(t *testing.T) {
 	// Verify normal operations work
 	t.Logf("Phase 1: Baseline - verify normal operations...")
 
-	instancesBefore, err := ctx.Client.GetInstances(context.Background())
+	instancesBefore, err := ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Normal operations should work")
-	t.Logf("✅ Baseline: Found %d instances", len(instancesBefore))
+	t.Logf("✅ Baseline: Found %d instances", len(instancesBefore.Instances))
 
 	// Simulate degraded AWS service by rapid-fire requests
 	// (may trigger throttling, which simulates service degradation)
@@ -377,7 +374,7 @@ func TestAWSErrorRecovery(t *testing.T) {
 	errorCount := 0
 
 	for i := 0; i < requestCount; i++ {
-		_, err := ctx.Client.GetInstances(context.Background())
+		_, err := ctx.Client.ListInstances(context.Background())
 		if err != nil {
 			errorCount++
 			t.Logf("   Request %d: Error - %v", i+1, err)
@@ -402,14 +399,14 @@ func TestAWSErrorRecovery(t *testing.T) {
 	// Wait for any rate limiting to reset
 	time.Sleep(5 * time.Second)
 
-	instancesAfter, err := ctx.Client.GetInstances(context.Background())
+	instancesAfter, err := ctx.Client.ListInstances(context.Background())
 	integration.AssertNoError(t, err, "Should recover after stress period")
-	t.Logf("✅ Recovery: Found %d instances", len(instancesAfter))
+	t.Logf("✅ Recovery: Found %d instances", len(instancesAfter.Instances))
 
 	// Verify same number of instances (no data loss)
-	if len(instancesAfter) != len(instancesBefore) {
+	if len(instancesAfter.Instances) != len(instancesBefore.Instances) {
 		t.Logf("⚠️  Warning: Instance count changed (%d -> %d)",
-			len(instancesBefore), len(instancesAfter))
+			len(instancesBefore.Instances), len(instancesAfter.Instances))
 	}
 
 	t.Logf("")
