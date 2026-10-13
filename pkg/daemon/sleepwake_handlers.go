@@ -4,7 +4,6 @@ package daemon
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/scttfrdmn/prism/pkg/sleepwake"
 )
@@ -89,9 +88,4 @@ func (s *Server) handleSleepWakeConfigure(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-}
-
-// Helper function to check if path matches a pattern (for routing)
-func pathMatches(path, pattern string) bool {
-	return strings.HasPrefix(path, pattern)
 }
