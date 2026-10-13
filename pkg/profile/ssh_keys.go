@@ -118,7 +118,7 @@ func (m *SSHKeyManager) keyPairExists(privateKeyPath, publicKeyPath string) bool
 }
 
 // generateKeyPair generates a new RSA key pair
-func (m *SSHKeyManager) generateKeyPair(privateKeyPath, publicKeyPath string) error {
+func (m *SSHKeyManager) generateKeyPair(privateKeyPath, publicKeyPath string) (retErr error) {
 	// Ensure .ssh directory exists
 	sshDir := filepath.Dir(privateKeyPath)
 	if err := os.MkdirAll(sshDir, 0700); err != nil {
@@ -138,14 +138,17 @@ func (m *SSHKeyManager) generateKeyPair(privateKeyPath, publicKeyPath string) er
 	}
 
 	// Write private key
-	privateFile, err := os.OpenFile(privateKeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	privateFile, err := os.OpenFile(privateKeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600) //nolint:gosec // G304: key path built by the key manager under the user's SSH key directory
 	if err != nil {
 		return fmt.Errorf("failed to create private key file: %w", err)
 	}
-	defer privateFile.Close()
 
 	if err := pem.Encode(privateFile, privateKeyPEM); err != nil {
+		_ = privateFile.Close() // already failing; the write error is what matters
 		return fmt.Errorf("failed to write private key: %w", err)
+	}
+	if err := privateFile.Close(); err != nil {
+		return fmt.Errorf("failed to close private key file: %w", err)
 	}
 
 	// Generate public key
@@ -155,11 +158,15 @@ func (m *SSHKeyManager) generateKeyPair(privateKeyPath, publicKeyPath string) er
 	}
 
 	// Write public key
-	publicFile, err := os.Create(publicKeyPath)
+	publicFile, err := os.Create(publicKeyPath) //nolint:gosec // G304: key path built by the key manager under the user's SSH key directory
 	if err != nil {
 		return fmt.Errorf("failed to create public key file: %w", err)
 	}
-	defer publicFile.Close()
+	defer func() {
+		if cerr := publicFile.Close(); cerr != nil && retErr == nil {
+			retErr = fmt.Errorf("failed to close public key file: %w", cerr)
+		}
+	}()
 
 	publicKeyLine := fmt.Sprintf("%s prism-generated\n",
 		strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicKey))))
@@ -173,7 +180,7 @@ func (m *SSHKeyManager) generateKeyPair(privateKeyPath, publicKeyPath string) er
 
 // extractKeyNameFromPublicKey extracts a usable key name from a public key file
 func (m *SSHKeyManager) extractKeyNameFromPublicKey(publicKeyPath string) (string, error) {
-	content, err := os.ReadFile(publicKeyPath)
+	content, err := os.ReadFile(publicKeyPath) //nolint:gosec // G304: public key path from local profile/SSH config
 	if err != nil {
 		return "", fmt.Errorf("failed to read public key: %w", err)
 	}
@@ -193,7 +200,7 @@ func (m *SSHKeyManager) extractKeyNameFromPublicKey(publicKeyPath string) (strin
 
 // GetPublicKeyContent returns the content of the public key for AWS upload
 func (m *SSHKeyManager) GetPublicKeyContent(publicKeyPath string) (string, error) {
-	content, err := os.ReadFile(publicKeyPath)
+	content, err := os.ReadFile(publicKeyPath) //nolint:gosec // G304: public key path from local profile/SSH config
 	if err != nil {
 		return "", fmt.Errorf("failed to read public key: %w", err)
 	}

@@ -4,6 +4,7 @@ package security
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -491,11 +492,21 @@ func (m *SecurityManager) LogOperationalEvent(action, resource, userID string, s
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			log.Printf("Warning: failed to close operational audit log: %v", cerr)
+		}
+	}()
 
-	data, _ := json.Marshal(event)
-	f.Write(data)
-	f.Write([]byte("\n"))
+	data, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("Warning: failed to encode operational audit event: %v", err)
+		return
+	}
+	// Single write so a line is never split by a partial failure between data and newline.
+	if _, err := f.Write(append(data, '\n')); err != nil {
+		log.Printf("Warning: failed to write operational audit event: %v", err)
+	}
 }
 
 // QueryOperationalEvents reads the last n operational audit events from the log file.

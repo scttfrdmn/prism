@@ -164,7 +164,7 @@ func (p *SecureCredentialProvider) getFromKeychain(profileName string) (*Credent
 
 func (p *SecureCredentialProvider) storeInKeychain(profileName string, creds *Credentials) error {
 	// Encode credentials as JSON
-	data, err := json.Marshal(creds)
+	data, err := json.Marshal(creds) //nolint:gosec // G117: serializing credentials for the OS secure store is the purpose here
 	if err != nil {
 		return fmt.Errorf("failed to encode credentials: %w", err)
 	}
@@ -210,7 +210,7 @@ func (p *SecureCredentialProvider) getFromCredentialManager(profileName string) 
 
 func (p *SecureCredentialProvider) storeInCredentialManager(profileName string, creds *Credentials) error {
 	// Encode credentials as JSON
-	data, err := json.Marshal(creds)
+	data, err := json.Marshal(creds) //nolint:gosec // G117: serializing credentials for the OS secure store is the purpose here
 	if err != nil {
 		return fmt.Errorf("failed to encode credentials: %w", err)
 	}
@@ -256,7 +256,7 @@ func (p *SecureCredentialProvider) getFromSecretService(profileName string) (*Cr
 
 func (p *SecureCredentialProvider) storeInSecretService(profileName string, creds *Credentials) error {
 	// Encode credentials as JSON
-	data, err := json.Marshal(creds)
+	data, err := json.Marshal(creds) //nolint:gosec // G117: serializing credentials for the OS secure store is the purpose here
 	if err != nil {
 		return fmt.Errorf("failed to encode credentials: %w", err)
 	}
@@ -314,7 +314,7 @@ func (p *SecureCredentialProvider) getFromFile(profileName string) (*Credentials
 	credFile := filepath.Join(p.configPath, profileName+".creds")
 
 	// Read encrypted file
-	encryptedData, err := os.ReadFile(credFile)
+	encryptedData, err := os.ReadFile(credFile) //nolint:gosec // G304: profile name from local config/CLI, joined under the user's credentials dir
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("credentials not found for profile %s", profileName)
@@ -356,7 +356,7 @@ func (p *SecureCredentialProvider) storeInFile(profileName string, creds *Creden
 	credFile := filepath.Join(p.configPath, profileName+".creds")
 
 	// Encode credentials as JSON
-	plaintext, err := json.Marshal(creds)
+	plaintext, err := json.Marshal(creds) //nolint:gosec // G117: plaintext is encrypted with secretbox before being written
 	if err != nil {
 		return fmt.Errorf("failed to encode credentials: %w", err)
 	}
@@ -474,7 +474,7 @@ func min(a, b int) int {
 
 // Base64EncodeCredentials encodes credentials to base64 for transport
 func Base64EncodeCredentials(creds *Credentials) (string, error) {
-	data, err := json.Marshal(creds)
+	data, err := json.Marshal(creds) //nolint:gosec // G117: explicit credential encoding for transport is this function's purpose
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal credentials: %w", err)
 	}

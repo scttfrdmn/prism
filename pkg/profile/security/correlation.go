@@ -363,7 +363,7 @@ func (e *SecurityCorrelationEngine) detectFrequencyAnomalies(events []SecurityEv
 
 func (e *SecurityCorrelationEngine) loadRecentEvents() ([]SecurityEvent, error) {
 	logPath := e.auditLogger.GetAuditLogPath()
-	content, err := os.ReadFile(logPath)
+	content, err := os.ReadFile(logPath) //nolint:gosec // G304: path is the audit logger's own log file under ~/.prism
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []SecurityEvent{}, nil

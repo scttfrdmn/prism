@@ -180,8 +180,8 @@ type KeychainDiagnostics struct {
 
 func diagnoseWindowsCredentialManager(diagnostics *KeychainDiagnostics) {
 	// Test if we can create native Windows credential manager
-	_, err := NewWindowsCredentialManagerNative()
-	if err != nil {
+	_, err := NewWindowsCredentialManagerNative() //nolint:staticcheck // SA4023: other platforms' constructors are stubs that always error on this GOOS; real implementations can succeed
+	if err != nil {                               //nolint:staticcheck // SA4023: other platforms' constructors are stubs that always error on this GOOS; real implementations can succeed
 		diagnostics.Issues = append(diagnostics.Issues, fmt.Sprintf("Windows Credential Manager unavailable: %v", err))
 		diagnostics.Recommendations = append(diagnostics.Recommendations, "Ensure Windows Credential Manager service is running")
 	} else {
@@ -191,8 +191,8 @@ func diagnoseWindowsCredentialManager(diagnostics *KeychainDiagnostics) {
 
 func diagnoseLinuxSecretService(diagnostics *KeychainDiagnostics) {
 	// Test if we can create native Linux Secret Service
-	native, err := NewLinuxSecretServiceNative()
-	if err != nil {
+	native, err := NewLinuxSecretServiceNative() //nolint:staticcheck // SA4023: other platforms' constructors are stubs that always error on this GOOS; real implementations can succeed
+	if err != nil {                              //nolint:staticcheck // SA4023: other platforms' constructors are stubs that always error on this GOOS; real implementations can succeed
 		diagnostics.Issues = append(diagnostics.Issues, fmt.Sprintf("Linux Secret Service unavailable: %v", err))
 		diagnostics.Recommendations = append(diagnostics.Recommendations,
 			"Install and configure a Secret Service provider (GNOME Keyring, KDE Wallet, etc.)")

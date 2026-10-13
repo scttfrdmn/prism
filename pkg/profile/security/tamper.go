@@ -210,11 +210,11 @@ func (t *TamperProtection) calculateFileMetadata(filePath string) (*FileMetadata
 	}
 
 	// Open file for reading
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) //nolint:gosec // G304: path of a Prism-managed file being integrity-checked, not external input
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // read-only; close error is not actionable
 
 	// Calculate SHA-256 checksum
 	hasher := sha256.New()

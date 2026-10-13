@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -38,7 +39,7 @@ func NewRegistryClient(config S3RegistryConfig) (*RegistryClient, error) {
 		config.LocalCache = filepath.Join(homeDir, ".prism", "registry-cache")
 	}
 
-	if err := os.MkdirAll(config.LocalCache, 0755); err != nil {
+	if err := os.MkdirAll(config.LocalCache, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create registry cache directory: %w", err)
 	}
 
@@ -81,14 +82,14 @@ func (c *RegistryClient) RegisterDevice(invitationToken, deviceID string) error 
 	}
 
 	// Send registration to API
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/register", apiURL), bytes.NewBuffer(data))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/register", apiURL), bytes.NewBuffer(data)) //nolint:gosec // G704: registry base URL comes from the local operator's CWS_REGISTRY_API env var; query values are escaped
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req) //nolint:gosec // G704: registry base URL comes from the local operator's CWS_REGISTRY_API env var; query values are escaped
 	if err != nil {
 		// If API call fails, fall back to local cache
 		_ = c.saveLocalRegistration(invitationToken, deviceID, registration)
@@ -122,13 +123,13 @@ func (c *RegistryClient) ValidateDevice(invitationToken, deviceID string) (bool,
 	}
 
 	// Send validation request to API
-	url := fmt.Sprintf("%s/validate?token=%s&device=%s", apiURL, invitationToken, deviceID)
-	req, err := http.NewRequest("GET", url, nil)
+	reqURL := fmt.Sprintf("%s/validate?token=%s&device=%s", apiURL, url.QueryEscape(invitationToken), url.QueryEscape(deviceID))
+	req, err := http.NewRequest("GET", reqURL, nil) //nolint:gosec // G704: registry base URL comes from the local operator's CWS_REGISTRY_API env var; query values are escaped
 	if err != nil {
 		return false, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req) //nolint:gosec // G704: registry base URL comes from the local operator's CWS_REGISTRY_API env var; query values are escaped
 	if err != nil {
 		// If API call fails, fall back to local validation
 		exists, _ := c.checkLocalRegistration(invitationToken, deviceID)
@@ -169,13 +170,13 @@ func (c *RegistryClient) GetInvitationDevices(invitationToken string) ([]map[str
 	}
 
 	// Send request to API
-	url := fmt.Sprintf("%s/devices?token=%s", apiURL, invitationToken)
-	req, err := http.NewRequest("GET", url, nil)
+	reqURL := fmt.Sprintf("%s/devices?token=%s", apiURL, url.QueryEscape(invitationToken))
+	req, err := http.NewRequest("GET", reqURL, nil) //nolint:gosec // G704: registry base URL comes from the local operator's CWS_REGISTRY_API env var; query values are escaped
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req) //nolint:gosec // G704: registry base URL comes from the local operator's CWS_REGISTRY_API env var; query values are escaped
 	if err != nil {
 		// If API call fails, fall back to local data
 		devices, _ := c.getLocalDevices(invitationToken)
@@ -216,13 +217,13 @@ func (c *RegistryClient) RevokeDevice(invitationToken, deviceID string) error {
 	}
 
 	// Send revocation to API
-	url := fmt.Sprintf("%s/revoke?token=%s&device=%s", apiURL, invitationToken, deviceID)
-	req, err := http.NewRequest("DELETE", url, nil)
+	reqURL := fmt.Sprintf("%s/revoke?token=%s&device=%s", apiURL, url.QueryEscape(invitationToken), url.QueryEscape(deviceID))
+	req, err := http.NewRequest("DELETE", reqURL, nil) //nolint:gosec // G704: registry base URL comes from the local operator's CWS_REGISTRY_API env var; query values are escaped
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req) //nolint:gosec // G704: registry base URL comes from the local operator's CWS_REGISTRY_API env var; query values are escaped
 	if err != nil {
 		// If API call fails, fall back to local revocation
 		_ = c.removeLocalRegistration(invitationToken, deviceID)
@@ -254,13 +255,13 @@ func (c *RegistryClient) RevokeInvitation(invitationToken string) error {
 	}
 
 	// Send revocation to API
-	url := fmt.Sprintf("%s/revoke-all?token=%s", apiURL, invitationToken)
-	req, err := http.NewRequest("DELETE", url, nil)
+	reqURL := fmt.Sprintf("%s/revoke-all?token=%s", apiURL, url.QueryEscape(invitationToken))
+	req, err := http.NewRequest("DELETE", reqURL, nil) //nolint:gosec // G704: registry base URL comes from the local operator's CWS_REGISTRY_API env var; query values are escaped
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req) //nolint:gosec // G704: registry base URL comes from the local operator's CWS_REGISTRY_API env var; query values are escaped
 	if err != nil {
 		// If API call fails, fall back to local revocation
 		_ = c.removeAllLocalRegistrations(invitationToken)
@@ -282,7 +283,7 @@ func (c *RegistryClient) RevokeInvitation(invitationToken string) error {
 func (c *RegistryClient) saveLocalRegistration(invitationToken, deviceID string, data interface{}) error {
 	// Create invitation directory if needed
 	invitationDir := filepath.Join(c.config.LocalCache, invitationToken)
-	if err := os.MkdirAll(invitationDir, 0755); err != nil {
+	if err := os.MkdirAll(invitationDir, 0700); err != nil {
 		return fmt.Errorf("failed to create invitation directory: %w", err)
 	}
 
@@ -294,7 +295,7 @@ func (c *RegistryClient) saveLocalRegistration(invitationToken, deviceID string,
 
 	// Write to file
 	deviceFile := filepath.Join(invitationDir, fmt.Sprintf("%s.json", deviceID))
-	if err := os.WriteFile(deviceFile, jsonData, 0644); err != nil {
+	if err := os.WriteFile(deviceFile, jsonData, 0600); err != nil {
 		return fmt.Errorf("failed to write registration file: %w", err)
 	}
 
@@ -348,7 +349,7 @@ func (c *RegistryClient) getLocalDevices(invitationToken string) ([]map[string]i
 		}
 
 		// Read file
-		data, err := os.ReadFile(filepath.Join(invitationDir, file.Name()))
+		data, err := os.ReadFile(filepath.Join(invitationDir, file.Name())) //nolint:gosec // G304: entry from os.ReadDir of our own registry cache directory
 		if err != nil {
 			continue
 		}

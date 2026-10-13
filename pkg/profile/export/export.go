@@ -8,10 +8,16 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/scttfrdmn/prism/pkg/profile"
 )
+
+// maxExtractedFileSize caps the size of any single file extracted from an
+// imported profile archive, guarding against decompression bombs. Profile
+// exports contain only small JSON documents.
+const maxExtractedFileSize = 64 << 20 // 64 MiB
 
 // ExportFormat defines the format version of exported profiles
 type ExportFormat struct {
@@ -66,14 +72,14 @@ func ExportProfiles(profileManager *profile.ManagerEnhanced, profiles []profile.
 	}
 
 	profilesFile := filepath.Join(tempDir, "profiles.json")
-	if err := os.WriteFile(profilesFile, profilesJSON, 0644); err != nil {
+	if err := os.WriteFile(profilesFile, profilesJSON, 0600); err != nil {
 		return fmt.Errorf("failed to write profiles file: %w", err)
 	}
 
 	// Export credentials if requested
 	if options.IncludeCredentials {
 		credsDir := filepath.Join(tempDir, "credentials")
-		if err := os.MkdirAll(credsDir, 0755); err != nil {
+		if err := os.MkdirAll(credsDir, 0700); err != nil {
 			return fmt.Errorf("failed to create credentials directory: %w", err)
 		}
 
@@ -91,15 +97,15 @@ func ExportProfiles(profileManager *profile.ManagerEnhanced, profiles []profile.
 				continue
 			}
 
-			// Marshal credentials
-			credsJSON, err := json.MarshalIndent(creds, "", "  ")
+			// Marshal credentials (exporting secrets is the explicit purpose of IncludeCredentials)
+			credsJSON, err := json.MarshalIndent(creds, "", "  ") //nolint:gosec // G117: credentials export is opt-in via IncludeCredentials; written 0600
 			if err != nil {
 				continue
 			}
 
 			// Write credentials file
 			credsFile := filepath.Join(credsDir, fmt.Sprintf("%s.json", prof.AWSProfile))
-			if err := os.WriteFile(credsFile, credsJSON, 0644); err != nil {
+			if err := os.WriteFile(credsFile, credsJSON, 0600); err != nil {
 				continue
 			}
 		}
@@ -171,7 +177,7 @@ func prepareImportDirectory(inputPath string, options ImportOptions) (string, er
 
 func loadExportData(tempDir string) (ExportFormat, error) {
 	profilesFile := filepath.Join(tempDir, "profiles.json")
-	profilesJSON, err := os.ReadFile(profilesFile)
+	profilesJSON, err := os.ReadFile(profilesFile) //nolint:gosec // G304: fixed file name inside our own MkdirTemp directory
 	if err != nil {
 		return ExportFormat{}, fmt.Errorf("failed to read profiles file: %w", err)
 	}
@@ -225,12 +231,18 @@ func importProfileCredentials(profileManager *profile.ManagerEnhanced, originalP
 		return
 	}
 
-	credsFile := filepath.Join(tempDir, "credentials", fmt.Sprintf("%s.json", originalProfileID))
+	// The profile ID comes from the imported (untrusted) archive; reject IDs
+	// that would resolve outside the extracted credentials directory.
+	credsDir := filepath.Join(tempDir, "credentials")
+	credsFile := filepath.Join(credsDir, fmt.Sprintf("%s.json", originalProfileID))
+	if !isWithinDir(credsDir, credsFile) {
+		return
+	}
 	if _, err := os.Stat(credsFile); err != nil {
 		return
 	}
 
-	credsJSON, err := os.ReadFile(credsFile)
+	credsJSON, err := os.ReadFile(credsFile) //nolint:gosec // G304: path validated to stay within the extracted credentials directory
 	if err != nil {
 		return
 	}
@@ -307,18 +319,35 @@ func shouldImportProfile(profile *profile.Profile, options ImportOptions) bool {
 	return false
 }
 
+// isWithinDir reports whether target, after cleaning, is located inside baseDir.
+func isWithinDir(baseDir, target string) bool {
+	rel, err := filepath.Rel(filepath.Clean(baseDir), filepath.Clean(target))
+	if err != nil {
+		return false
+	}
+	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel)
+}
+
 // createZipArchive creates a zip archive from a directory
-func createZipArchive(sourceDir, outputPath, password string) error {
-	// Create output file
-	outFile, err := os.Create(outputPath)
+func createZipArchive(sourceDir, outputPath, password string) (retErr error) {
+	// Create output file. The archive may contain credentials, so restrict it to the owner.
+	outFile, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600) //nolint:gosec // G304: output path chosen by the local user (CLI argument)
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
-	defer outFile.Close()
+	defer func() {
+		if cerr := outFile.Close(); cerr != nil && retErr == nil {
+			retErr = fmt.Errorf("failed to close output file: %w", cerr)
+		}
+	}()
 
 	// Create zip writer
 	zipWriter := zip.NewWriter(outFile)
-	defer zipWriter.Close()
+	defer func() {
+		if cerr := zipWriter.Close(); cerr != nil && retErr == nil {
+			retErr = fmt.Errorf("failed to finalize zip archive: %w", cerr)
+		}
+	}()
 
 	// Walk through the source directory
 	return filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
@@ -344,11 +373,11 @@ func createZipArchive(sourceDir, outputPath, password string) error {
 		}
 
 		// Open source file
-		srcFile, err := os.Open(path)
+		srcFile, err := os.Open(path) //nolint:gosec // G304: path produced by filepath.Walk over our own temp directory
 		if err != nil {
 			return fmt.Errorf("failed to open source file: %w", err)
 		}
-		defer srcFile.Close()
+		defer func() { _ = srcFile.Close() }() // read-only; close error is not actionable
 
 		// Copy file content
 		_, err = io.Copy(zipFile, srcFile)
@@ -367,7 +396,7 @@ func extractZipArchive(zipPath, outputDir, password string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open zip file: %w", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }() // read-only; close error is not actionable
 
 	// Extract files
 	for _, file := range reader.File {
@@ -376,11 +405,14 @@ func extractZipArchive(zipPath, outputDir, password string) error {
 			continue
 		}
 
-		// Create output file path
-		outPath := filepath.Join(outputDir, file.Name)
+		// Create output file path, rejecting entries that escape outputDir (zip slip)
+		outPath := filepath.Join(outputDir, file.Name) //nolint:gosec // G305: validated by isWithinDir below
+		if !isWithinDir(outputDir, outPath) {
+			return fmt.Errorf("invalid file path in archive: %s", file.Name)
+		}
 
 		// Create parent directory if needed
-		if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(outPath), 0700); err != nil {
 			return fmt.Errorf("failed to create directory: %w", err)
 		}
 
@@ -391,19 +423,25 @@ func extractZipArchive(zipPath, outputDir, password string) error {
 		}
 
 		// Create output file
-		outFile, err := os.Create(outPath)
+		outFile, err := os.OpenFile(outPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600) //nolint:gosec // G304: path validated to stay within outputDir
 		if err != nil {
 			_ = srcFile.Close()
 			return fmt.Errorf("failed to create output file: %w", err)
 		}
 
-		// Copy content
-		_, err = io.Copy(outFile, srcFile)
-		_ = srcFile.Close()
-		_ = outFile.Close()
+		// Copy content, capped to guard against decompression bombs
+		n, err := io.Copy(outFile, io.LimitReader(srcFile, maxExtractedFileSize+1))
+		_ = srcFile.Close() // read-only zip entry
+		closeErr := outFile.Close()
 
 		if err != nil {
 			return fmt.Errorf("failed to copy file content: %w", err)
+		}
+		if n > maxExtractedFileSize {
+			return fmt.Errorf("file %s in archive exceeds maximum size of %d bytes", file.Name, maxExtractedFileSize)
+		}
+		if closeErr != nil {
+			return fmt.Errorf("failed to close output file: %w", closeErr)
 		}
 	}
 
@@ -411,20 +449,24 @@ func extractZipArchive(zipPath, outputDir, password string) error {
 }
 
 // copyFile copies a file from src to dst
-func copyFile(src, dst string) error {
+func copyFile(src, dst string) (retErr error) {
 	// Open source file
-	srcFile, err := os.Open(src)
+	srcFile, err := os.Open(src) //nolint:gosec // G304: path is a local CLI argument or our own temp file
 	if err != nil {
 		return fmt.Errorf("failed to open source file: %w", err)
 	}
-	defer srcFile.Close()
+	defer func() { _ = srcFile.Close() }() // read-only; close error is not actionable
 
 	// Create destination file
-	dstFile, err := os.Create(dst)
+	dstFile, err := os.Create(dst) //nolint:gosec // G304: path is a local CLI argument or our own temp file
 	if err != nil {
 		return fmt.Errorf("failed to create destination file: %w", err)
 	}
-	defer dstFile.Close()
+	defer func() {
+		if cerr := dstFile.Close(); cerr != nil && retErr == nil {
+			retErr = fmt.Errorf("failed to close destination file: %w", cerr)
+		}
+	}()
 
 	// Copy content
 	_, err = io.Copy(dstFile, srcFile)

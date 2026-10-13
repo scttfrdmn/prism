@@ -370,7 +370,7 @@ func (m *BatchDeviceManager) ExportDeviceInfoToCSVFile(
 	csvPath string,
 	results *BatchDeviceManagementResult,
 ) error {
-	file, err := os.Create(csvPath)
+	file, err := os.Create(csvPath) //nolint:gosec // G304: CSV output path is a local CLI argument
 	if err != nil {
 		return fmt.Errorf("failed to create CSV file: %w", err)
 	}
@@ -459,7 +459,7 @@ func (m *BatchDeviceManager) ImportDevicesFromCSVFile(
 	csvPath string,
 	hasHeader bool,
 ) ([]DeviceOperationResult, error) {
-	file, err := os.Open(csvPath)
+	file, err := os.Open(csvPath) //nolint:gosec // G304: CSV input path is a local CLI argument
 	if err != nil {
 		return nil, fmt.Errorf("failed to open CSV file: %w", err)
 	}

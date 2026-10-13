@@ -148,7 +148,7 @@ func (dcm *DaemonConnectionManager) MakeRequestWithRetry(ctx context.Context, re
 	// Attempt request with connection-level retry
 	maxAttempts := 3
 	for attempt := 0; attempt < maxAttempts; attempt++ {
-		resp, err := dcm.httpClient.Do(req)
+		resp, err := dcm.httpClient.Do(req) //nolint:gosec // G704: caller-built request to the local daemon URL, not user-controlled
 		if err == nil {
 			dcm.updateHealthStatus(true)
 			return resp, nil
@@ -299,7 +299,7 @@ func (rhc *RetryableHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	var lastErr error
 
 	for attempt := 0; attempt <= rhc.maxRetries; attempt++ {
-		resp, err := rhc.client.Do(req)
+		resp, err := rhc.client.Do(req) //nolint:gosec // G704: generic retry wrapper; callers build requests to the local daemon
 		if err == nil {
 			rhc.monitor.RecordValue("http_request_success", 1, "count")
 			return resp, nil

@@ -58,7 +58,7 @@ func NewSecureRegistryClient(config S3RegistryConfig) (*SecureRegistryClient, er
 		config.LocalCache = filepath.Join(homeDir, ".prism", "registry-cache")
 	}
 
-	if err := os.MkdirAll(config.LocalCache, 0755); err != nil {
+	if err := os.MkdirAll(config.LocalCache, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create registry cache directory: %w", err)
 	}
 
@@ -93,6 +93,9 @@ func NewSecureRegistryClient(config S3RegistryConfig) (*SecureRegistryClient, er
 			TLSClientConfig: &tls.Config{
 				MinVersion:            tls.VersionTLS12,
 				VerifyPeerCertificate: certPinner.VerifyPeerCertificate,
+				// VerifyConnection also runs on resumed sessions, where
+				// VerifyPeerCertificate is skipped, so pinning cannot be bypassed.
+				VerifyConnection: certPinner.VerifyConnection,
 			},
 		},
 	}
@@ -317,6 +320,16 @@ func (p *CertificatePinner) VerifyPeerCertificate(rawCerts [][]byte, verifiedCha
 	return fmt.Errorf("certificate not pinned: %s", fingerprintStr)
 }
 
+// VerifyConnection enforces certificate pinning on every connection,
+// including resumed TLS sessions where VerifyPeerCertificate is not called.
+func (p *CertificatePinner) VerifyConnection(cs tls.ConnectionState) error {
+	rawCerts := make([][]byte, 0, len(cs.PeerCertificates))
+	for _, cert := range cs.PeerCertificates {
+		rawCerts = append(rawCerts, cert.Raw)
+	}
+	return p.VerifyPeerCertificate(rawCerts, cs.VerifiedChains)
+}
+
 // securePost performs a secure POST request with signing
 func (c *SecureRegistryClient) securePost(url string, payload *SignedPayload) (*http.Response, error) {
 	// Create request
@@ -325,7 +338,7 @@ func (c *SecureRegistryClient) securePost(url string, payload *SignedPayload) (*
 		return nil, fmt.Errorf("failed to marshal signed payload: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewReader(reqBody))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(reqBody)) //nolint:gosec // G704: URL built from the local operator's CWS_REGISTRY_API env var
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -336,7 +349,7 @@ func (c *SecureRegistryClient) securePost(url string, payload *SignedPayload) (*
 	req.Header.Set("X-Request-ID", generateRequestID())
 
 	// Perform request
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req) //nolint:gosec // G704: URL built from the local operator's CWS_REGISTRY_API env var; TLS peer is certificate-pinned
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -444,7 +457,7 @@ func maskToken(token string) string {
 func (c *SecureRegistryClient) saveLocalRegistration(invitationToken, deviceID string, data interface{}) error {
 	// Create invitation directory if needed
 	invitationDir := filepath.Join(c.config.LocalCache, invitationToken)
-	if err := os.MkdirAll(invitationDir, 0755); err != nil {
+	if err := os.MkdirAll(invitationDir, 0700); err != nil {
 		return fmt.Errorf("failed to create invitation directory: %w", err)
 	}
 
@@ -456,7 +469,7 @@ func (c *SecureRegistryClient) saveLocalRegistration(invitationToken, deviceID s
 
 	// Write to file
 	deviceFile := filepath.Join(invitationDir, fmt.Sprintf("%s.json", deviceID))
-	if err := os.WriteFile(deviceFile, jsonData, 0644); err != nil {
+	if err := os.WriteFile(deviceFile, jsonData, 0600); err != nil {
 		return fmt.Errorf("failed to write registration file: %w", err)
 	}
 
