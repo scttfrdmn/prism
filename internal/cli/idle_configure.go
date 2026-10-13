@@ -210,7 +210,9 @@ func (s *IdleUpdateService) UpdateConfiguration(publicIP string, params *IdleCon
 }
 
 func (s *IdleUpdateService) executeSSHCommand(publicIP, sshKey, script string) error {
-	cmd := exec.Command("ssh",
+	// script is built by IdleScriptBuilder from integer settings only; no
+	// user-supplied strings reach the remote shell.
+	cmd := exec.Command("ssh", //nolint:gosec // G204: ssh, args are argv not shell; remote script contains only integer values
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "LogLevel=ERROR",
 		"-i", sshKey,
@@ -370,7 +372,7 @@ func (r *IdleConfigRetriever) GetConfiguration(publicIP string) (*IdleConfig, er
 	sshKey := "~/.ssh/prism-my-account-key"
 
 	// Get configuration via SSH
-	cmd := exec.Command("ssh",
+	cmd := exec.Command("ssh", //nolint:gosec // G204: ssh, args are argv not shell; remote command is a constant string
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "LogLevel=ERROR",
 		"-i", sshKey,

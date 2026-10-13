@@ -578,7 +578,9 @@ func (bc *BudgetCommands) listBudgets() error {
 			budgetCount, totalBudget, totalSpent, totalBudget-totalSpent, overallPercent)
 	}
 
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return err
+	}
 
 	fmt.Printf("\n💡 Commands:\n")
 	fmt.Printf("   prism budget create <project> <amount>  # Create new budget\n")
@@ -1651,7 +1653,7 @@ func (bc *BudgetCommands) displaySavingsTotals(w *tabwriter.Writer, totalSavings
 	totalEfficiency := bc.calculateEfficiency(totalSavings, totalPotentialSavings)
 	fmt.Fprintf(w, "\nTOTAL\t$%.2f\t$%.2f\t%.1f%%\n",
 		totalSavings, totalPotentialSavings, totalEfficiency)
-	w.Flush()
+	_ = w.Flush() // stdout table; this display helper has no error return and a failed terminal write is not actionable
 }
 
 // displaySavingsRecommendations displays cost optimization recommendations
@@ -1708,7 +1710,9 @@ func (bc *BudgetCommands) breakdownBudget(cmd *cobra.Command, args []string) err
 			totalInstanceCost += ic.TotalCost
 		}
 		fmt.Fprintf(w, "\nTOTAL INSTANCES\t\t\t\t$%.2f\t\n", totalInstanceCost)
-		w.Flush()
+		if err := w.Flush(); err != nil {
+			return err
+		}
 		fmt.Println()
 	}
 
@@ -1725,7 +1729,9 @@ func (bc *BudgetCommands) breakdownBudget(cmd *cobra.Command, args []string) err
 			totalStorageCost += sc.Cost
 		}
 		fmt.Fprintf(w, "\nTOTAL STORAGE\t\t\t\t$%.2f\n", totalStorageCost)
-		w.Flush()
+		if err := w.Flush(); err != nil {
+			return err
+		}
 		fmt.Println()
 	}
 
@@ -1863,8 +1869,7 @@ func (bc *BudgetCommands) outputHistoryTable(trends map[string]interface{}) erro
 		}
 	}
 
-	w.Flush()
-	return nil
+	return w.Flush()
 }
 
 // listAlerts lists all alerts for a budget
@@ -1899,7 +1904,9 @@ func (bc *BudgetCommands) listAlerts(budgetID string) error {
 		fmt.Fprintf(w, "%d\t%.1f%%\t%s\t%s\t%s\n",
 			i+1, alert.Threshold*100, alert.Type, recipients, status)
 	}
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return err
+	}
 
 	fmt.Printf("\n💡 Alert Actions:\n")
 	fmt.Printf("   prism budget alerts %s --action add     # Add new alert\n", budgetID)

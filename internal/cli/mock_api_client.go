@@ -3040,7 +3040,7 @@ func (m *MockAPIClient) CreateWorkshop(ctx context.Context, req map[string]inter
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	return map[string]interface{}{"id": "mock-ws-id", "title": req["title"], "status": "draft", "join_token": "WS-MOCKTOKEN"}, nil
+	return map[string]interface{}{"id": "mock-ws-id", "title": req["title"], "status": "draft", "join_token": "WS-MOCKTOKEN"}, nil //nolint:gosec // G101: fixed mock join token for tests, not a credential
 }
 
 func (m *MockAPIClient) GetWorkshop(ctx context.Context, workshopID string) (map[string]interface{}, error) {
@@ -3110,7 +3110,7 @@ func (m *MockAPIClient) CreateWorkshopFromConfig(ctx context.Context, configName
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	return map[string]interface{}{"id": "mock-ws-from-config", "title": req["title"], "join_token": "WS-MOCKTOKEN"}, nil
+	return map[string]interface{}{"id": "mock-ws-from-config", "title": req["title"], "join_token": "WS-MOCKTOKEN"}, nil //nolint:gosec // G101: fixed mock join token for tests, not a credential
 }
 
 func (m *MockAPIClient) AddWorkshopParticipant(ctx context.Context, workshopID string, req map[string]interface{}) (map[string]interface{}, error) {

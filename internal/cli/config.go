@@ -30,7 +30,7 @@ func LoadConfig() (*Config, error) {
 	configFile := filepath.Join(configPath, "config.json")
 
 	// Create config directory if it doesn't exist
-	if err := os.MkdirAll(configPath, 0755); err != nil {
+	if err := os.MkdirAll(configPath, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -44,7 +44,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	// Read config file
-	data, err := os.ReadFile(configFile)
+	data, err := os.ReadFile(configFile) //nolint:gosec // G304: fixed path ~/.prism/config.json
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -76,7 +76,7 @@ func saveConfig(config *Config) error {
 	configFile := filepath.Join(configPath, "config.json")
 
 	// Create config directory if it doesn't exist
-	if err := os.MkdirAll(configPath, 0755); err != nil {
+	if err := os.MkdirAll(configPath, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -87,7 +87,7 @@ func saveConfig(config *Config) error {
 	}
 
 	// Write config file
-	if err := os.WriteFile(configFile, data, 0644); err != nil {
+	if err := os.WriteFile(configFile, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

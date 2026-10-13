@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -143,18 +144,26 @@ func (ic *InstanceCommands) getConnectionInfo(name, userOverride string, verbose
 	}
 
 	if userOverride != "" {
+		// The connection string is executed via `sh -c`, so the override must
+		// not contain shell metacharacters.
+		if !sshUsernamePattern.MatchString(userOverride) {
+			return "", fmt.Errorf("invalid username %q: must start with a letter or underscore and contain only letters, digits, '_', '.', or '-'", userOverride)
+		}
 		connectionInfo = ic.applyUsernameOverride(connectionInfo, userOverride, verbose)
 	}
 
 	return connectionInfo, nil
 }
 
+// sshUsernamePattern matches a conventional POSIX login name.
+var sshUsernamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.-]{0,31}$`)
+
 // applyUsernameOverride replaces username in SSH connection string
 func (ic *InstanceCommands) applyUsernameOverride(connectionInfo, userOverride string, verbose bool) string {
 	parts := strings.Fields(connectionInfo)
 	for _, part := range parts {
-		if strings.Contains(part, "@") {
-			hostPart := part[strings.Index(part, "@"):]
+		if _, host, found := strings.Cut(part, "@"); found {
+			hostPart := "@" + host
 			connectionInfo = strings.Replace(connectionInfo, part, userOverride+hostPart, 1)
 			if verbose {
 				fmt.Printf("🔧 Username overridden: %s\n", userOverride)
@@ -289,7 +298,7 @@ func (ic *InstanceCommands) startSSMPortForwarding(instanceID string, remotePort
 	parameters := fmt.Sprintf(`{"portNumber":["%d"],"localPortNumber":["%d"]}`, remotePort, localPort)
 
 	// Build AWS SSM command
-	cmd := exec.Command("aws", "ssm", "start-session",
+	cmd := exec.Command("aws", "ssm", "start-session", //nolint:gosec // G204: aws CLI, args are argv not shell
 		"--target", instanceID,
 		"--document-name", "AWS-StartPortForwardingSession",
 		"--parameters", parameters,
@@ -872,7 +881,7 @@ func (ic *InstanceCommands) confirmResize(instanceName string, force bool) error
 	fmt.Printf("   Type the instance name to confirm: ")
 
 	var confirmation string
-	fmt.Scanln(&confirmation)
+	_, _ = fmt.Scanln(&confirmation) // empty or invalid input leaves confirmation unmatched, which is treated as "no"
 
 	if confirmation != instanceName {
 		fmt.Printf("❌ Instance name doesn't match. Resize cancelled.\n")

@@ -84,7 +84,7 @@ Keep it secure and never commit it to version control.`,
 	}
 
 	cmd.Flags().StringP("output", "o", "", "Output file path (required)")
-	cmd.MarkFlagRequired("output")
+	_ = cmd.MarkFlagRequired("output") // only errors if the flag is undefined; it is defined above
 
 	return cmd
 }
@@ -112,7 +112,7 @@ The key must be in PEM format (RSA private key).`,
 
 	cmd.Flags().StringP("key-file", "f", "", "Path to SSH private key file (required)")
 	cmd.Flags().StringP("region", "r", "us-east-1", "AWS region for this key")
-	cmd.MarkFlagRequired("key-file")
+	_ = cmd.MarkFlagRequired("key-file") // only errors if the flag is undefined; it is defined above
 
 	return cmd
 }
@@ -187,7 +187,9 @@ func (k *KeysCobraCommands) handleListKeys() error {
 		)
 	}
 
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return err
+	}
 
 	fmt.Printf("\n💡 Use 'prism keys show <profile>' for detailed information\n")
 	fmt.Printf("💡 Use 'prism keys export <profile> -o <file>' to backup a key\n")
@@ -263,7 +265,7 @@ func (k *KeysCobraCommands) handleExportKey(profileName, outputPath string) erro
 		fmt.Printf("⚠️  File already exists: %s\n", outputPath)
 		fmt.Printf("Overwrite? [y/N]: ")
 		var response string
-		fmt.Scanln(&response)
+		_, _ = fmt.Scanln(&response) // empty or invalid input leaves response unmatched, which is treated as "no"
 		if strings.ToLower(response) != "y" && strings.ToLower(response) != "yes" {
 			fmt.Println("❌ Export cancelled")
 			return nil
@@ -380,7 +382,7 @@ func (k *KeysCobraCommands) handleDeleteKey(profileName string, force bool) erro
 		fmt.Printf("   Local Path:  %s\n", metadata.LocalPath)
 		fmt.Printf("\nType the profile name to confirm: ")
 		var confirmation string
-		fmt.Scanln(&confirmation)
+		_, _ = fmt.Scanln(&confirmation) // empty or invalid input leaves confirmation unmatched, which is treated as "no"
 
 		if confirmation != profileName {
 			fmt.Println("❌ Profile name doesn't match. Deletion cancelled.")

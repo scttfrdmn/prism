@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"strconv"
 	"text/tabwriter"
 	"time"
 
@@ -703,7 +704,9 @@ func (a *App) projectInvitationsList(args []string) error {
 			inv.ExpiresAt.Format("2006-01-02"),
 		)
 	}
-	w.Flush() //nolint:errcheck
+	if err := w.Flush(); err != nil {
+		return err
+	}
 	fmt.Printf("\nTotal: %d invitation(s)\n", result.Total)
 
 	return nil
@@ -736,7 +739,7 @@ func (a *App) projectInvitationsRevoke(args []string) error {
 
 	fmt.Printf("Revoke invitation '%s'? [y/N] ", invitationID)
 	var confirm string
-	fmt.Scanln(&confirm) //nolint:errcheck
+	_, _ = fmt.Scanln(&confirm) // empty or invalid input leaves confirm unmatched, which is treated as "no"
 	if confirm != "y" && confirm != "Y" {
 		fmt.Println("Cancelled.")
 		return nil
@@ -1074,8 +1077,10 @@ func parseDuration(s string) (time.Duration, error) {
 			if current == "" {
 				return 0, fmt.Errorf("missing number before '%c'", ch)
 			}
-			num := 0
-			fmt.Sscanf(current, "%d", &num)
+			num, err := strconv.Atoi(current)
+			if err != nil {
+				return 0, fmt.Errorf("invalid number %q before '%c': %w", current, ch, err)
+			}
 
 			switch ch {
 			case 'd':

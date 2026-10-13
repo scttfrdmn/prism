@@ -369,7 +369,7 @@ func (pw *ProfileWizard) validateAWSCredentials(awsProfile, region string) bool 
 	fmt.Println("Testing your AWS credentials...")
 
 	// Simple validation using AWS CLI if available
-	cmd := exec.Command("aws", "sts", "get-caller-identity", "--profile", awsProfile)
+	cmd := exec.Command("aws", "sts", "get-caller-identity", "--profile", awsProfile) //nolint:gosec // G204: aws CLI, args are argv not shell
 	if region != "" {
 		cmd.Env = append(os.Environ(), fmt.Sprintf("AWS_DEFAULT_REGION=%s", region))
 	}
@@ -498,8 +498,8 @@ func (pw *ProfileWizard) detectAWSProfilesDetailed() []awsProfileInfo {
 	// --- ~/.aws/config ---
 	// Profiles are [default] or [profile <name>].
 	// We read each section's keys to determine the credential type.
-	if f, err := os.Open(homeDir + "/.aws/config"); err == nil {
-		defer f.Close()
+	if f, err := os.Open(homeDir + "/.aws/config"); err == nil { //nolint:gosec // G304: fixed path under the user's home directory
+		defer func() { _ = f.Close() }() // read-only; close error is not actionable
 		var current string
 		var info awsProfileInfo
 		flush := func() {
@@ -548,8 +548,8 @@ func (pw *ProfileWizard) detectAWSProfilesDetailed() []awsProfileInfo {
 
 	// --- ~/.aws/credentials ---
 	// Profiles are [<name>] with static access keys.
-	if f, err := os.Open(homeDir + "/.aws/credentials"); err == nil {
-		defer f.Close()
+	if f, err := os.Open(homeDir + "/.aws/credentials"); err == nil { //nolint:gosec // G304: fixed path under the user's home directory
+		defer func() { _ = f.Close() }() // read-only; close error is not actionable
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())

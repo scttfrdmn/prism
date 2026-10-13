@@ -316,6 +316,83 @@ func (a *App) courseTemplates(hc *apiclient.HTTPClient, args []string) error {
 
 // --- course students ---
 
+// courseStudentsList implements "prism course students list".
+func (a *App) courseStudentsList(hc *apiclient.HTTPClient, courseID string, rest []string) error {
+	role := ""
+	for i := 0; i < len(rest); i++ {
+		if rest[i] == "--role" && i+1 < len(rest) {
+			role = rest[i+1]
+			i++
+		}
+	}
+	result, err := hc.ListCourseMembers(a.ctx, courseID, role)
+	if err != nil {
+		return fmt.Errorf("failed to list members: %w", err)
+	}
+	members, _ := result["members"].([]interface{})
+	if len(members) == 0 {
+		fmt.Println("No members enrolled.")
+		return nil
+	}
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "USER ID\tEMAIL\tROLE\tBUDGET SPENT\tBUDGET LIMIT")
+	fmt.Fprintln(w, "-------\t-----\t----\t------------\t------------")
+	for _, raw := range members {
+		m, ok := raw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		spent := 0.0
+		limit := 0.0
+		if v, ok := m["budget_spent"].(float64); ok {
+			spent = v
+		}
+		if v, ok := m["budget_limit"].(float64); ok {
+			limit = v
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t$%.2f\t$%.2f\n",
+			strVal(m["user_id"]),
+			strVal(m["email"]),
+			strVal(m["role"]),
+			spent, limit,
+		)
+	}
+	return w.Flush()
+}
+
+// courseStudentsEnroll implements "prism course students enroll".
+func (a *App) courseStudentsEnroll(hc *apiclient.HTTPClient, courseID string, rest []string) error {
+	req := map[string]interface{}{"role": "student"}
+	for i := 0; i < len(rest); i++ {
+		switch {
+		case rest[i] == "--email" && i+1 < len(rest):
+			req["email"] = rest[i+1]
+			i++
+		case rest[i] == "--user" && i+1 < len(rest):
+			req["user_id"] = rest[i+1]
+			i++
+		case rest[i] == "--name" && i+1 < len(rest):
+			req["display_name"] = rest[i+1]
+			i++
+		case rest[i] == "--role" && i+1 < len(rest):
+			req["role"] = rest[i+1]
+			i++
+		case rest[i] == "--budget" && i+1 < len(rest):
+			if v, err := strconv.ParseFloat(rest[i+1], 64); err == nil {
+				req["budget_limit"] = v
+			}
+			i++
+		}
+	}
+	result, err := hc.EnrollCourseMember(a.ctx, courseID, req)
+	if err != nil {
+		return fmt.Errorf("failed to enroll member: %w", err)
+	}
+	fmt.Printf("Enrolled %s as %s in course %s.\n",
+		strVal(result["user_id"]), strVal(result["role"]), courseID)
+	return nil
+}
+
 func (a *App) courseStudents(hc *apiclient.HTTPClient, args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("usage: prism course students <list|enroll|unenroll> <course-id> [options]")
@@ -325,75 +402,9 @@ func (a *App) courseStudents(hc *apiclient.HTTPClient, args []string) error {
 	rest := args[2:]
 	switch action {
 	case "list":
-		role := ""
-		for i := 0; i < len(rest); i++ {
-			if rest[i] == "--role" && i+1 < len(rest) {
-				role = rest[i+1]
-				i++
-			}
-		}
-		result, err := hc.ListCourseMembers(a.ctx, courseID, role)
-		if err != nil {
-			return fmt.Errorf("failed to list members: %w", err)
-		}
-		members, _ := result["members"].([]interface{})
-		if len(members) == 0 {
-			fmt.Println("No members enrolled.")
-			return nil
-		}
-		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "USER ID\tEMAIL\tROLE\tBUDGET SPENT\tBUDGET LIMIT")
-		fmt.Fprintln(w, "-------\t-----\t----\t------------\t------------")
-		for _, raw := range members {
-			m, ok := raw.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			spent := 0.0
-			limit := 0.0
-			if v, ok := m["budget_spent"].(float64); ok {
-				spent = v
-			}
-			if v, ok := m["budget_limit"].(float64); ok {
-				limit = v
-			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t$%.2f\t$%.2f\n",
-				strVal(m["user_id"]),
-				strVal(m["email"]),
-				strVal(m["role"]),
-				spent, limit,
-			)
-		}
-		return w.Flush()
+		return a.courseStudentsList(hc, courseID, rest)
 	case "enroll":
-		req := map[string]interface{}{"role": "student"}
-		for i := 0; i < len(rest); i++ {
-			switch {
-			case rest[i] == "--email" && i+1 < len(rest):
-				req["email"] = rest[i+1]
-				i++
-			case rest[i] == "--user" && i+1 < len(rest):
-				req["user_id"] = rest[i+1]
-				i++
-			case rest[i] == "--name" && i+1 < len(rest):
-				req["display_name"] = rest[i+1]
-				i++
-			case rest[i] == "--role" && i+1 < len(rest):
-				req["role"] = rest[i+1]
-				i++
-			case rest[i] == "--budget" && i+1 < len(rest):
-				if v, err := strconv.ParseFloat(rest[i+1], 64); err == nil {
-					req["budget_limit"] = v
-				}
-				i++
-			}
-		}
-		result, err := hc.EnrollCourseMember(a.ctx, courseID, req)
-		if err != nil {
-			return fmt.Errorf("failed to enroll member: %w", err)
-		}
-		fmt.Printf("Enrolled %s as %s in course %s.\n",
-			strVal(result["user_id"]), strVal(result["role"]), courseID)
+		return a.courseStudentsEnroll(hc, courseID, rest)
 	case "unenroll":
 		if len(rest) < 1 {
 			return fmt.Errorf("usage: prism course students unenroll <course-id> <user-id>")
@@ -415,7 +426,7 @@ func (a *App) courseStudents(hc *apiclient.HTTPClient, args []string) error {
 				i++
 			}
 		}
-		csvBytes, err := os.ReadFile(filePath)
+		csvBytes, err := os.ReadFile(filePath) //nolint:gosec // G304: roster CSV path supplied by the user on the command line
 		if err != nil {
 			return fmt.Errorf("failed to read file %s: %w", filePath, err)
 		}
@@ -666,7 +677,7 @@ func (a *App) courseReport(hc *apiclient.HTTPClient, args []string) error {
 
 	if outputFile != "" {
 		data, _ := json.MarshalIndent(result, "", "  ")
-		if err := os.WriteFile(outputFile, data, 0644); err != nil {
+		if err := os.WriteFile(outputFile, data, 0600); err != nil {
 			return fmt.Errorf("failed to write output: %w", err)
 		}
 		fmt.Printf("Report written to %s.\n", outputFile)
@@ -958,8 +969,10 @@ func (a *App) courseMaterials(hc *apiclient.HTTPClient, args []string) error {
 		if sizeStr == "" {
 			sizeStr = "50"
 		}
-		size := 50
-		fmt.Sscanf(sizeStr, "%d", &size)
+		size, err := strconv.Atoi(sizeStr)
+		if err != nil || size <= 0 {
+			return fmt.Errorf("invalid --size %q: must be a positive integer (GB)", sizeStr)
+		}
 		mountPath := flags["--mount"]
 		if mountPath == "" {
 			mountPath = "/mnt/course-materials"

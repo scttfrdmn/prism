@@ -100,7 +100,7 @@ func (s *SystemCommands) daemonStart() error {
 	prismdPath := findPrismdBinary()
 
 	// Start daemon in the background
-	cmd := exec.Command(prismdPath)
+	cmd := exec.Command(prismdPath) //nolint:gosec // G204: prismd binary located by findPrismdBinary, no args
 	if err := cmd.Start(); err != nil {
 		return WrapAPIError("start daemon process", err)
 	}
@@ -386,7 +386,7 @@ func (s *SystemCommands) loadDaemonConfigFromFile() (*DaemonConfig, error) {
 	}
 
 	// Read config file
-	data, err := os.ReadFile(configPath)
+	data, err := os.ReadFile(configPath) //nolint:gosec // G304: fixed daemon config path under ~/.prism
 	if err != nil {
 		return nil, fmt.Errorf("failed to read daemon config: %w", err)
 	}
@@ -519,7 +519,7 @@ func (s *SystemCommands) directProcessScan() error {
 		}
 
 		// Get process details
-		cmd := exec.Command("ps", "-p", pidStr, "-o", "pid,ppid,command")
+		cmd := exec.Command("ps", "-p", pidStr, "-o", "pid,ppid,command") //nolint:gosec // G204: ps, args are argv not shell; pidStr parsed as int above
 		if psOutput, err := cmd.Output(); err == nil {
 			lines := strings.Split(string(psOutput), "\n")
 			if len(lines) > 1 {
@@ -717,7 +717,7 @@ func (s *SystemCommands) performDirectCleanup(forceKill bool) error {
 			signal = "TERM"
 		}
 
-		cmd := exec.Command("kill", "-"+signal, pidStr)
+		cmd := exec.Command("kill", "-"+signal, pidStr) //nolint:gosec // G204: kill, args are argv not shell; signal is a constant and pidStr comes from pgrep
 		if err := cmd.Run(); err != nil {
 			fmt.Printf(" failed (%v)\n", err)
 		} else {
@@ -737,8 +737,8 @@ func (s *SystemCommands) performDirectCleanup(forceKill bool) error {
 			if len(remainingPids) > 0 {
 				fmt.Printf("🔨 Force killing %d remaining process(es)\n", len(remainingPids))
 				for _, pidStr := range remainingPids {
-					cmd = exec.Command("kill", "-KILL", pidStr)
-					_ = cmd.Run() // Error ignored - force kill may fail for already dead processes
+					cmd = exec.Command("kill", "-KILL", pidStr) //nolint:gosec // G204: kill, args are argv not shell; pidStr comes from pgrep
+					_ = cmd.Run()                               // Error ignored - force kill may fail for already dead processes
 				}
 			}
 		}

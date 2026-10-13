@@ -126,7 +126,9 @@ func (ruc *ResearchUserCobraCommands) createListCommand() *cobra.Command {
 				)
 			}
 
-			w.Flush()
+			if err := w.Flush(); err != nil {
+				return err
+			}
 
 			fmt.Println("\n🔍 Research User Architecture:")
 			fmt.Println("   • Each user has consistent UID/GID across all instances")
@@ -546,7 +548,9 @@ func (ruc *ResearchUserCobraCommands) createKeysListCommand() *cobra.Command {
 				)
 			}
 
-			w.Flush()
+			if err := w.Flush(); err != nil {
+				return err
+			}
 
 			fmt.Printf("\n🔐 SSH Key Security:\n")
 			fmt.Printf("   • All keys use modern cryptography (Ed25519 preferred)\n")
@@ -648,7 +652,7 @@ func (ruc *ResearchUserCobraCommands) createKeysAddCommand() *cobra.Command {
 				publicKey = args[1]
 			} else if keyFile != "" {
 				// Read from file
-				data, err := os.ReadFile(keyFile)
+				data, err := os.ReadFile(keyFile) //nolint:gosec // G304: public key file path supplied by the user via --key-file
 				if err != nil {
 					return fmt.Errorf("failed to read key file: %w", err)
 				}

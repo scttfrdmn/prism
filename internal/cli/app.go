@@ -1270,7 +1270,10 @@ func (a *App) executeSSHCommand(connectionInfo, instanceName string) error {
 	}
 
 	// Use shell to execute the SSH command to handle quotes properly
-	cmd := exec.Command("sh", "-c", connectionInfo)
+	// connectionInfo is built by the local daemon (fixed "ssh" command with
+	// instance IP/key path); the only user-supplied part, --user, is validated
+	// against sshUsernamePattern in getConnectionInfo.
+	cmd := exec.Command("sh", "-c", connectionInfo) //nolint:gosec // G204: command string comes from the local daemon; user-supplied username is validated
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -2118,9 +2121,7 @@ func (a *App) projectTemplates(args []string) error {
 		}
 		fmt.Fprintf(w, "   %s\t%s\t%s\n", tName, category, desc)
 	}
-	w.Flush()
-
-	return nil
+	return w.Flush()
 }
 
 func (a *App) projectMembers(args []string) error {
@@ -2275,7 +2276,7 @@ func loadAPIKeyFromState() string {
 	}
 
 	stateFile := filepath.Join(homeDir, ".prism", "state.json")
-	data, err := os.ReadFile(stateFile)
+	data, err := os.ReadFile(stateFile) //nolint:gosec // G304: fixed path ~/.prism/state.json
 	if err != nil {
 		return "" // No state file or can't read it
 	}

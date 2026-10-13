@@ -599,7 +599,7 @@ func (s *AMIBuilderService) handleBuildResult(result *ami.BuildResult) error {
 	// Save build logs if available
 	if result.Logs != "" {
 		logFile := fmt.Sprintf("%s-build.log", result.TemplateName)
-		if err := os.WriteFile(logFile, []byte(result.Logs), 0644); err != nil {
+		if err := os.WriteFile(logFile, []byte(result.Logs), 0600); err != nil {
 			fmt.Printf("Warning: Failed to write build logs to %s: %v\n", logFile, err)
 		} else {
 			fmt.Printf("Full build logs saved to %s\n", logFile)

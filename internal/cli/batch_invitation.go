@@ -71,7 +71,7 @@ Example:
 					}
 					fmt.Fprintf(w, "%s\t%s\n", inv.Name, errMsg)
 				}
-				w.Flush() //nolint:errcheck
+				_ = w.Flush() // stdout table; Run has no error return and a failed terminal write is not actionable
 			}
 
 			// Export results if output file requested
@@ -90,7 +90,7 @@ Example:
 				for _, inv := range results.Successful {
 					fmt.Fprintf(w, "%s\t%s\t%s\n", inv.Name, inv.Type, inv.Token)
 				}
-				w.Flush() //nolint:errcheck
+				_ = w.Flush() // stdout table; Run has no error return and a failed terminal write is not actionable
 			}
 		},
 	}
@@ -226,11 +226,11 @@ type batchAcceptEntry struct {
 
 // readBatchAcceptCSV reads a CSV of (encoded-token, optional-profile-name) rows.
 func readBatchAcceptCSV(csvPath string, hasHeader bool) ([]batchAcceptEntry, error) {
-	f, err := os.Open(csvPath)
+	f, err := os.Open(csvPath) //nolint:gosec // G304: CSV path supplied by the user on the command line
 	if err != nil {
 		return nil, fmt.Errorf("open file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }() // read-only; close error is not actionable
 
 	parser := profile.NewCSVInvitationParser(f, hasHeader)
 	records, err := parser.ParseRecords()

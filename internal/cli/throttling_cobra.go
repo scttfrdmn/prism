@@ -289,8 +289,8 @@ Examples:
 	cmd.Flags().IntVar(&maxLaunches, "max-launches", 0, "Maximum launches in time window")
 	cmd.Flags().StringVar(&timeWindow, "time-window", "", "Time window (e.g., 1h, 24h)")
 	cmd.Flags().StringVar(&reason, "reason", "", "Reason for override")
-	cmd.MarkFlagRequired("max-launches")
-	cmd.MarkFlagRequired("time-window")
+	_ = cmd.MarkFlagRequired("max-launches") // only errors if the flag is undefined; it is defined above
+	_ = cmd.MarkFlagRequired("time-window")  // only errors if the flag is undefined; it is defined above
 
 	return cmd
 }

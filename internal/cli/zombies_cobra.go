@@ -242,7 +242,7 @@ func (z *ZombiesCobraCommands) runCleanup(ctx context.Context, force bool, dryRu
 	// Get confirmation
 	fmt.Print("Type 'yes' to confirm: ")
 	var confirmation string
-	fmt.Scanln(&confirmation)
+	_, _ = fmt.Scanln(&confirmation) // empty or invalid input leaves confirmation unmatched, which is treated as "no"
 
 	if strings.ToLower(strings.TrimSpace(confirmation)) != "yes" {
 		fmt.Println("Cleanup cancelled.")

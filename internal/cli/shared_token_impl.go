@@ -338,7 +338,7 @@ func (a *App) projectInvitationsSharedQR(args []string, output string) error {
 	}
 
 	if output != "" {
-		if writeErr := os.WriteFile(output, qrBytes, 0644); writeErr != nil {
+		if writeErr := os.WriteFile(output, qrBytes, 0600); writeErr != nil {
 			return fmt.Errorf("failed to write QR code to %s: %w", output, writeErr)
 		}
 		fmt.Println()
