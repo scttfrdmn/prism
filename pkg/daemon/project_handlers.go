@@ -63,15 +63,7 @@ func (s *Server) handleProjectSubOp(w http.ResponseWriter, r *http.Request, proj
 	case "members":
 		s.handleProjectMembers(w, r, projectID, parts)
 	case "budget":
-		if len(parts) >= 3 && parts[2] == "history" {
-			s.handleProjectBudgetHistory(w, r, projectID)
-		} else if len(parts) >= 3 && parts[2] == "share" {
-			s.handleProjectBudgetShare(w, r, projectID)
-		} else if len(parts) >= 3 && parts[2] == "shares" {
-			s.handleProjectBudgetShares(w, r, projectID, parts)
-		} else {
-			s.handleProjectBudget(w, r, projectID)
-		}
+		s.handleProjectBudgetSubOp(w, r, projectID, parts)
 	case "costs":
 		s.handleProjectCosts(w, r, projectID)
 	case "usage":
@@ -119,6 +111,24 @@ func (s *Server) handleProjectSubOp(w http.ResponseWriter, r *http.Request, proj
 		s.handleGetProjectInstances(w, r, projectID)
 	default:
 		s.writeError(w, http.StatusNotFound, "Unknown project operation")
+	}
+}
+
+// handleProjectBudgetSubOp routes /api/v1/projects/{id}/budget[/{sub}].
+func (s *Server) handleProjectBudgetSubOp(w http.ResponseWriter, r *http.Request, projectID string, parts []string) {
+	sub := ""
+	if len(parts) >= 3 {
+		sub = parts[2]
+	}
+	switch sub {
+	case "history":
+		s.handleProjectBudgetHistory(w, r, projectID)
+	case "share":
+		s.handleProjectBudgetShare(w, r, projectID)
+	case "shares":
+		s.handleProjectBudgetShares(w, r, projectID, parts)
+	default:
+		s.handleProjectBudget(w, r, projectID)
 	}
 }
 
@@ -1480,15 +1490,15 @@ func (s *Server) handleProjectMonthlyReport(w http.ResponseWriter, r *http.Reque
 	switch format {
 	case "text":
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = fmt.Fprint(w, report.RenderText())
+		_, _ = fmt.Fprint(w, report.RenderText()) //nolint:gosec // G705: served as text/plain with nosniff, never rendered as HTML
 	case "csv":
 		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=budget-report-%s-%s.csv", projectID, month))
-		_, _ = fmt.Fprint(w, report.RenderCSV())
+		_, _ = fmt.Fprint(w, report.RenderCSV()) //nolint:gosec // G705: served as text/csv attachment with nosniff, never rendered as HTML
 	default:
 		data, _ := report.RenderJSON()
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write(data)
+		_, _ = w.Write(data) //nolint:gosec // G705: JSON-encoded body served as application/json with nosniff
 	}
 }
 

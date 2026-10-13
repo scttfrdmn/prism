@@ -18,7 +18,7 @@ func (s *Server) handleRBACRoles(w http.ResponseWriter, r *http.Request) {
 
 	roles := s.rbacManager.ListRoles()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"roles": roles})
+	encodeJSONResponse(w, map[string]interface{}{"roles": roles})
 }
 
 // handleRBACAssign assigns a role to a user.
@@ -55,7 +55,7 @@ func (s *Server) handleRBACAssign(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	encodeJSONResponse(w, map[string]string{
 		"message": "Role assigned successfully",
 		"user_id": req.UserID,
 		"role_id": req.RoleID,
@@ -72,7 +72,7 @@ func (s *Server) handleRBACUsers(w http.ResponseWriter, r *http.Request) {
 
 	assignments := s.rbacManager.ListUserAssignments()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"assignments": assignments})
+	encodeJSONResponse(w, map[string]interface{}{"assignments": assignments})
 }
 
 // handleRBACOperations dispatches /api/v1/rbac/ sub-paths.

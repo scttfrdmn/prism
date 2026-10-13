@@ -70,9 +70,8 @@ func (m *LaunchProgressMonitor) Start(ctx context.Context) error {
 			}
 
 			// Parse progress markers if available
-			if err := m.parseProgressMarkers(ctx); err != nil {
-				// Progress markers not available yet, just use cloud-init status
-			}
+			// Progress markers may not be available yet; fall back to cloud-init status.
+			_ = m.parseProgressMarkers(ctx)
 
 			// Check if setup is complete
 			if status.Status == "done" {
@@ -110,7 +109,7 @@ func (m *LaunchProgressMonitor) isSSHAvailable(ctx context.Context) bool {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "ssh",
+	cmd := exec.CommandContext(ctx, "ssh", //nolint:gosec // G204: fixed ssh binary, args are argv; remote command is a fixed literal
 		"-o", "ConnectTimeout=3",
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
@@ -129,7 +128,7 @@ func (m *LaunchProgressMonitor) checkCloudInitStatus(ctx context.Context) (*Clou
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "ssh",
+	cmd := exec.CommandContext(ctx, "ssh", //nolint:gosec // G204: fixed ssh binary, args are argv; remote command is a fixed literal
 		"-o", "ConnectTimeout=5",
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
@@ -172,7 +171,7 @@ func (m *LaunchProgressMonitor) parseProgressMarkers(ctx context.Context) error 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "ssh",
+	cmd := exec.CommandContext(ctx, "ssh", //nolint:gosec // G204: fixed ssh binary, args are argv; remote command is a fixed literal
 		"-o", "ConnectTimeout=5",
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",

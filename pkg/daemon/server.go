@@ -247,16 +247,7 @@ func NewServer(port string) (*Server, error) {
 
 	// Auto-generate API key if none exists (#597) — skip in test mode
 	if os.Getenv("PRISM_TEST_MODE") != "true" {
-		if initState, loadErr := stateManager.LoadState(); loadErr == nil && initState.Config.APIKey == "" {
-			logger.Warn("No API key configured — generating one automatically")
-			keyBytes := make([]byte, 32)
-			if _, randErr := cryptorand.Read(keyBytes); randErr == nil {
-				initState.Config.APIKey = hex.EncodeToString(keyBytes)
-				initState.Config.APIKeyCreated = time.Now()
-				_ = stateManager.SaveState(initState)
-				logger.Info("API key generated successfully")
-			}
-		}
+		ensureAPIKey(stateManager)
 	}
 
 	// Initialize user manager
@@ -471,43 +462,7 @@ func NewServer(port string) (*Server, error) {
 	// PRISM_COST_RECONCILIATION) and only wired when a live AWS manager is present; skipped in test
 	// mode. The billed-cost func is bound from awsManager so the observer stays AWS-free and testable.
 	if spendLedger != nil {
-		opts := spendObserverOptions{
-			reconcileEnabled:  config.CostReconciliationEnabled,
-			reconcileInterval: config.GetCostReconciliationInterval(),
-		}
-		if awsManager != nil {
-			opts.billedCost = awsManager.GetBilledCost
-		}
-		observer := newSpendObserver(spendLedger, func() ([]types.Instance, error) {
-			st, err := stateManager.LoadState()
-			if err != nil {
-				return nil, err
-			}
-			out := make([]types.Instance, 0, len(st.Instances))
-			for _, inst := range st.Instances {
-				out = append(out, inst)
-			}
-			return out, nil
-		}, server.testMode, opts)
-		if opts.reconcileEnabled && opts.billedCost != nil {
-			logger.Info("Budget cost reconciliation enabled", "interval", opts.reconcileInterval.String())
-		}
-
-		// Live budget enforcement (#656): opt-in, off by default. When enabled, evaluate each project's
-		// budget against the ledger and fire its auto-actions/cushion. Shares the single StateMonitor
-		// tick hook with the observer (only one hook is supported), running enforcement after accrual so
-		// it sees the freshest spend.
-		enforcer := server.newBudgetEnforcer(config)
-		if enforcer != nil && enforcer.enabled {
-			logger.Info("Budget enforcement enabled", "interval", enforcer.interval.String())
-		}
-		stateMonitor.SetTickHook(func() {
-			ctx := context.Background()
-			observer.Observe(ctx)
-			if enforcer != nil {
-				enforcer.Enforce(ctx)
-			}
-		})
+		wireSpendObserver(server, config, awsManager, stateManager, stateMonitor, spendLedger)
 	}
 
 	// Initialize course manager (v0.14.0 - Issue #45)
@@ -582,6 +537,68 @@ func NewServer(port string) (*Server, error) {
 	return server, nil
 }
 
+// ensureAPIKey generates and persists an API key when none is configured (#597).
+func ensureAPIKey(stateManager *state.Manager) {
+	initState, loadErr := stateManager.LoadState()
+	if loadErr != nil || initState.Config.APIKey != "" {
+		return
+	}
+	logger.Warn("No API key configured — generating one automatically")
+	keyBytes := make([]byte, 32)
+	if _, randErr := cryptorand.Read(keyBytes); randErr != nil {
+		return
+	}
+	initState.Config.APIKey = hex.EncodeToString(keyBytes)
+	initState.Config.APIKeyCreated = time.Now()
+	if err := stateManager.SaveState(initState); err != nil {
+		logger.Warn("Failed to persist generated API key", "error", err)
+		return
+	}
+	logger.Info("API key generated successfully")
+}
+
+// wireSpendObserver registers the spend observer (and optional live budget
+// enforcer) as the StateMonitor tick hook.
+func wireSpendObserver(server *Server, config *Config, awsManager *aws.Manager, stateManager *state.Manager, stateMonitor *StateMonitor, spendLedger *spendStore) {
+	opts := spendObserverOptions{
+		reconcileEnabled:  config.CostReconciliationEnabled,
+		reconcileInterval: config.GetCostReconciliationInterval(),
+	}
+	if awsManager != nil {
+		opts.billedCost = awsManager.GetBilledCost
+	}
+	observer := newSpendObserver(spendLedger, func() ([]types.Instance, error) {
+		st, err := stateManager.LoadState()
+		if err != nil {
+			return nil, err
+		}
+		out := make([]types.Instance, 0, len(st.Instances))
+		for _, inst := range st.Instances {
+			out = append(out, inst)
+		}
+		return out, nil
+	}, server.testMode, opts)
+	if opts.reconcileEnabled && opts.billedCost != nil {
+		logger.Info("Budget cost reconciliation enabled", "interval", opts.reconcileInterval.String())
+	}
+
+	// Live budget enforcement (#656): opt-in, off by default. When enabled, evaluate each project's
+	// budget against the ledger and fire its auto-actions/cushion. Shares the single StateMonitor
+	// tick hook with the observer (only one hook is supported), running enforcement after accrual so
+	// it sees the freshest spend.
+	enforcer := server.newBudgetEnforcer(config)
+	if enforcer != nil && enforcer.enabled {
+		logger.Info("Budget enforcement enabled", "interval", enforcer.interval.String())
+	}
+	stateMonitor.SetTickHook(func() {
+		ctx := context.Background()
+		observer.Observe(ctx)
+		if enforcer != nil {
+			enforcer.Enforce(ctx)
+		}
+	})
+}
+
 // NewServerForTesting creates a new daemon server with test mode enabled
 // Test mode skips AWS operations to allow unit testing without AWS credentials
 func NewServerForTesting(port string) (*Server, error) {
@@ -612,7 +629,7 @@ func (s *Server) acquireSingletonLock() error {
 					time.Sleep(1 * time.Second)
 					listener, listenErr := net.Listen("tcp", fmt.Sprintf(":%s", s.port))
 					if listenErr == nil {
-						listener.Close()
+						_ = listener.Close() // probe listener only; bind success means the port is free
 						portReleased = true
 						break
 					}
@@ -733,8 +750,8 @@ func (s *Server) Start() error {
 	// Use TLS if cert/key exist in ~/.prism/tls/ (#594)
 	certPath := filepath.Join(os.Getenv("HOME"), ".prism", "tls", "cert.pem")
 	keyPath := filepath.Join(os.Getenv("HOME"), ".prism", "tls", "key.pem")
-	if _, err := os.Stat(certPath); err == nil {
-		if _, err := os.Stat(keyPath); err == nil {
+	if _, err := os.Stat(certPath); err == nil { //nolint:gosec // G703: fixed path under $HOME/.prism/tls
+		if _, err := os.Stat(keyPath); err == nil { //nolint:gosec // G703: fixed path under $HOME/.prism/tls
 			logger.Info("TLS enabled", "cert", certPath)
 			return s.httpServer.ListenAndServeTLS(certPath, keyPath)
 		}

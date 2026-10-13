@@ -259,7 +259,7 @@ func (s *Server) handleAMICreate(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
-		json.NewEncoder(w).Encode(response) //nolint:errcheck
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -379,7 +379,7 @@ func (s *Server) handleAMIList(w http.ResponseWriter, r *http.Request) {
 	// In test mode, return empty list without making AWS calls
 	if s.testMode {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]interface{}{}) //nolint:errcheck
+		encodeJSONResponse(w, []interface{}{})
 		return
 	}
 
@@ -433,7 +433,7 @@ func (s *Server) handleAMICleanup(w http.ResponseWriter, r *http.Request) {
 			"cleanup_completed_at":    time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response) //nolint:errcheck
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -495,7 +495,7 @@ func (s *Server) handleAMIDelete(w http.ResponseWriter, r *http.Request) {
 			"deletion_completed_at":   time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response) //nolint:errcheck
+		encodeJSONResponse(w, response)
 		return
 	}
 

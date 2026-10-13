@@ -384,7 +384,7 @@ func (s *Server) recordLaunch(req *types.LaunchRequest, instance *types.Instance
 }
 
 // handleLaunchInstance launches a new instance
-func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) { //nolint:gocognit,cyclop // launch pipeline (validation, budget gate, throttling, AMI/spot fallbacks) is order-sensitive; split tracked separately
 	var req types.LaunchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.writeError(w, http.StatusBadRequest, "Invalid JSON request body")

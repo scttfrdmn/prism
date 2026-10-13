@@ -45,7 +45,7 @@ func (s *Server) handleRateLimitStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleRateLimitConfigure updates rate limiter configuration
@@ -118,7 +118,7 @@ func (s *Server) handleRateLimitConfigure(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleRateLimitReset resets the rate limiter state
@@ -149,5 +149,5 @@ func (s *Server) handleRateLimitReset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
