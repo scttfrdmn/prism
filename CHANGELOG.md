@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-10-13
+
 ### Added
 - **`prism security` command exposed.** The fully-built security & compliance
   command tree (`security status|health|dashboard|correlations|keychain|config`
@@ -80,121 +82,208 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`test/integration/spawn_lifecycle_test.go`: launch → stop → start → hibernate
   → resume → terminate a live Ubuntu 24.04 instance via spawn). Bumps
   `spore-host/spawn` v0.65.0 → v0.72.0.
+- **GUI launch form exposes the opt-in launch options.** The launch modal now
+  offers **Spot max price** ($/hr, enabled only when Spot is selected), an **EFA**
+  toggle, and a **Placement group** field — the GUI counterpart to the Phase-3a
+  CLI flags. This also fixes a latent bug: the modal's existing **Spot** toggle
+  was in form state but never sent to the daemon, so it had no effect; it (and the
+  three new fields) now thread through `SafePrismAPI.launchInstance` to the
+  `/api/v1/instances` request with the `spot`/`spot_max_price`/`efa`/
+  `placement_group` keys matching `pkg/types.LaunchRequest`. All default-off.
+- **spawn adoption — opt-in launch capabilities (Phase 3a).** Three new opt-in
+  `prism workspace launch` flags, all default-off (empty/false = today's
+  behavior): `--spot-max-price <$/hr>` (a real spot bid cap; requires `--spot`),
+  `--efa` (attach an Elastic Fabric Adapter NIC for MPI/HPC), and
+  `--placement-group <name>` (launch into a cluster placement group). They thread
+  through `types.LaunchRequest` → `launch.ToLaunchConfig` → the EC2 launcher
+  (`configToRunInput` builds the EFA NIC and placement group, mirroring spawn so
+  the eventual launch swap stays behavior-identical). Validation:
+  `--spot-max-price` without `--spot` is rejected, and `--efa` on a non-EFA
+  instance type is rejected via a new `supportsEFA` capability allowlist
+  (modeled on `supportsHibernation`). CLI-only for now (the GUI launch form
+  already omits optional launch fields from the wire); GUI exposure is a
+  follow-up. Third step of the spawn-adoption milestone.
+- **spawn adoption — instance lifecycle now runs on spawn (Phase 2).** Instance
+  stop/start/hibernate/terminate now route through `github.com/spore-host/spawn`'s
+  client via a `hybridLauncher` (`pkg/aws/hybrid_launcher.go`): lifecycle → spawn,
+  launch → Prism's existing EC2 path. Behavior is preserved — spawn's `StopInstance`
+  maps hibernate directly, its errors are `%w`-wrapped so the graceful "already
+  gone" delete still fires, and Prism's transient-failure retry is kept by wrapping
+  the spawn calls in `WithRetry`. Launch deliberately stays on Prism's launcher for
+  now: spawn v0.65.0 hardcodes the root block-device name to `/dev/xvda` and doesn't
+  derive it from the AMI, which would misplace the root-volume-size override on
+  Prism's Ubuntu/Rocky AMIs (root `/dev/sda1`); launch moves to spawn once that gap
+  is closed upstream. Validated end-to-end against real AWS
+  (`test/integration/spawn_lifecycle_test.go`: launch → stop → start → hibernate
+  → resume → terminate on a live Ubuntu 24.04 instance). Second step of the
+  spawn-adoption milestone.
+- **spawn adoption — launch/lifecycle seam (Phase 1).** Introduced a narrow, host-owned
+  `Launcher` port (`pkg/launch`) expressed in `github.com/spore-host/spawn`'s own types
+  (`Launch(ctx, spawn.LaunchConfig) (*spawn.LaunchResult, error)` + stop/start/terminate), plus a
+  pure `ToLaunchConfig` mapping. Prism's EC2 launch and lifecycle
+  (`Manager.LaunchInstance`/`Stop`/`Start`/`Hibernate`/`Delete`) now flow through this port,
+  defaulting to an EC2-backed implementation (`pkg/aws/ec2_launcher.go`) that reproduces today's
+  behavior byte-for-byte — public-IP NIC, gp3 root volume, spot/hibernation options, AZ failover.
+  This is the seam-only refactor: no behavior change and the CLI/GUI wire contracts and the daemon
+  budget launch-gate are untouched; a later phase swaps the default for `*spawn.Client` (which
+  already satisfies the port). Pins `spore-host/spawn v0.65.0` (transitively bumps
+  `scttfrdmn/substrate` v0.70.0 → v0.71.0). First step of the spawn-adoption milestone, following
+  the truffle adoption (#659).
+- **Live budget enforcement — auto-actions fire again (#656).** Per-project budget auto-actions
+  (`AutoActions[]`: threshold %% → hibernate/stop/prevent-launch/notify) and the safety cushion
+  (headroom → one action) are evaluated against the `budgetengine` spend ledger on the daemon's
+  monitoring tick and executed when breached — restoring behavior that went dead when the legacy
+  BudgetTracker was retired. A new daemon `budgetEnforcer` (`pkg/daemon/budget_enforcer.go`) folds each
+  budgeted project's ledger via the same `budgetStatus` the API returns, so enforcement and the status
+  readout agree; it drives the existing `Server.ExecuteHibernateAll/StopAll/PreventLaunch` executors
+  and the surviving `CushionEvaluator`, and sends notifications through the alert dispatcher
+  (Slack webhook when `PRISM_SLACK_WEBHOOK` is set, else log). **Off by default** — destructive actions
+  require an explicit opt-in via `budget_enforcement_enabled` (or `PRISM_BUDGET_ENFORCEMENT=true`);
+  the evaluation cadence is `budget_enforcement_interval_minutes` (default 10, 1-minute floor).
+  Dedup is fire-once-per-budget-period via `LastTriggered` timestamps (persisted on each action and the
+  cushion), so a breach acts once per month rather than every tick.
+- **Opt-in Cost Explorer billed-cost reconciliation (#644).** The budget spend ledger can now
+  reconcile its list-price estimates against authoritative AWS Cost Explorer billed cost, so a
+  project's recorded spend converges on real dollars (e.g. reflecting RIs/Savings Plans/spot). It is
+  **off by default** — CE calls cost money (~$0.01/call, 1–2 per instance), are rate-limited, and lag
+  ~a day — and enabled via `daemon_config.json` (`cost_reconciliation_enabled`) or
+  `PRISM_COST_RECONCILIATION=true`. The frequency is configurable
+  (`cost_reconciliation_interval_minutes`, default 1440 = daily; or `PRISM_COST_RECONCILIATION_INTERVAL`
+  as a Go duration) and clamped to a **1-hour floor**. When the per-instance `prism:instance-id`
+  cost-allocation tag isn't active in AWS Billing, reconciliation is skipped (the region-total blob
+  isn't per-instance) and the estimate is kept, with a warning to activate the tag. Reconciliation is
+  additionally skipped in test/reduced mode; the reversal+billed correction is idempotent.
+- **Budget engine adoption, Phase 2 (#644) — real spend ledger.** Prism now accrues per-instance
+  spend into an append-only, seam-backed `budgetengine` ledger, replacing Phase 1's synthetic
+  single spend event. A spend observer (`pkg/daemon/spend_observer.go`) runs on the `StateMonitor`
+  tick, internally throttled to a 10-minute accrual cadence, and appends a `SpendEvent` per running
+  project-attributed instance as the **delta** of a cumulative list-price estimate
+  (`HourlyRate × runtime`). A per-instance checkpoint (persisted through the seam) makes accrual
+  idempotent across restarts — no double-counting. The launch gate now reads this real ledger as
+  its `SpendSource` when populated, falling back to the cached `SpentAmount` while the ledger warms
+  up (so it never becomes more permissive than Phase 1). Spend is project-scoped for now
+  (`AllocationID = "project"`). Authoritative Cost Explorer reconciliation and per-funding-allocation
+  attribution are deferred to follow-ups; `BudgetTracker`/HTTP handlers are untouched.
 
-### Security
-- **Credential files are really encrypted (#738).** When the OS keychain can't
-  hold a profile's AWS credentials, Prism writes an encrypted
-  `~/.prism/credentials/<profile>.creds`. Its key was derived from the home
-  directory path and service name with a static salt, so anyone who could read
-  the file could derive the key. The key is now either a random 256-bit key
-  held in the OS keychain, or, on headless hosts with no keychain, derived with
-  scrypt and a per-file salt from a passphrase in the new
-  **`PRISM_CREDENTIALS_PASSPHRASE`** environment variable. With neither,
-  storing to the file fails with that guidance instead of writing a derivable
-  ciphertext. Files in the old format are still read and are re-encrypted on
-  first read when a key source is available.
-- **SSH host keys are verified (#739).** Every ssh/scp call (port-forwarding
-  tunnels, launch-progress probes, Jupyter token lookup, template application)
-  used `StrictHostKeyChecking=no` with `UserKnownHostsFile=/dev/null`, so
-  anyone in the network path, or holding a recycled public IP, could
-  impersonate an instance. Host keys are now recorded on first use and checked
-  on every later connection, in `~/.prism/ssh_known_hosts` (new package
-  `pkg/sshhostkeys`). They're keyed by instance ID via `HostKeyAlias`, not by
-  IP, because EC2 reuses public IPs. Deleting an instance, or the state monitor
-  seeing it terminated, removes its key. The unreachable
-  `internal/cli/idle_configure.go` (never registered as a command, with an
-  instance lookup that could not match the real client) is removed rather than
-  fixed.
-- **`prism workspace connect` no longer runs a shell (#740).** The CLI executed
-  the daemon's SSH connection string with `sh -c`, so a shell metacharacter in
-  any part of it (user, IP, key path from instance state) would have run
-  locally. The connect API now also returns the endpoint in structured form
-  (`ssh: {user, host, port, key_path}`). The CLI runs `ssh` with an argument
-  vector ending `--`, user@host. The GUI's "open terminal" can't avoid a shell
-  (terminal emulators run one), so it validates the values (POSIX login name,
-  plain IP or hostname, port) and quotes every argument. `connection_info`
-  remains for display. The client no longer decodes the connect response into a
-  string map, which failed on desktop instances' numeric `dcv_port`.
-- **Cross-site WebSocket hijacking closed.** The GUI's terminal server
-  (`127.0.0.1:8948`, no other authentication) accepted WebSocket handshakes
-  from any origin and hands out SSH sessions, so any web page the user visited
-  while the GUI ran could open a shell on their workstations. The daemon's SSH
-  proxy accepted any origin *containing* "localhost" (`https://localhost.evil.com`).
-  All upgraders now use `web.LocalOriginCheck`: exact loopback hosts, the
-  request's own host, and the Wails webview only.
-- **SSRF in the AWS console proxy.** `/aws-proxy/` put the `region` query
-  parameter straight into the reverse-proxy target host, so `evil.com/#`
-  pointed it (and any federation token) at an arbitrary host. `region` must
-  now be a well-formed AWS region.
-- **Zip slip and decompression bomb on profile import.** Archive entries that
-  resolve outside the extraction directory are rejected and each file is
-  capped at 64 MiB. Credential export archives were world-readable under the
-  default umask; they are now 0600.
-- **Path traversal through untrusted names.** An invitation token became a
-  file name under `received/`, and a research username from the HTTP path
-  became a file name, so `Delete` could remove any reachable `.json`. Both
-  are validated; SSH key-store IDs and repository template paths too.
-- **Certificate pinning on resumed TLS sessions.** The registry client's pin
-  check now runs via `VerifyConnection` on every connection; resumed sessions
-  used to skip it.
-- **Command injection hardening.** Windows `openBrowser` used `cmd /c start
-  <url>` (`&` in a URL was a command separator). ssh/scp arguments end option
-  parsing with `--`. `connect --user` must be a POSIX username (the connection
-  string runs via `sh -c`). SSM file-transfer paths reject `"`, `\` and `$`.
-  Template scripts run through a heredoc with a random delimiter (a line
-  `EOF` used to end it early).
-- **Policy evaluation fails closed.** Template-access, resource-limit and
-  research-user policies whose conditions can't be decoded now deny instead of
-  allowing.
-- **Private files are private.** Files and directories under `~/.prism`
-  holding config, state, credentials, keys, tokens, invitations, course
-  reports or caches are created 0600/0700 (existing directories keep their
-  mode). SSH public keys stay 0644.
-- **golangci-lint release gate passes.** `make lint` was failing on 2,856
-  golangci-lint findings. `.golangci.yml` now keeps the bug-finding linters
-  strict (errcheck, gosec, bodyclose, staticcheck, gocritic diagnostics) and
-  holds style and complexity to limits the code meets: goconst, unparam and
-  prealloc are off, staticcheck QF* and gocritic style checks are off, and
-  cyclop is 30, gocognit 60. All remaining findings are fixed, including
-  hundreds of dropped errors and three slice-aliasing `append` bugs; every
-  suppression names its rule and reason. The integration-tagged tests in
-  `pkg/aws` and `pkg/ami` compile again.
-- **Green the Security Scan again (red on `main` since late July).** govulncheck
-  flagged 10 reachable vulnerabilities: eight in the Go standard library (Go
-  1.26.5 → 1.26.9 in both `go.mod` files and the CI/release workflows),
-  `golang.org/x/crypto` (0.53.0 → 0.57.0) and `go.opentelemetry.io/otel/sdk`
-  (1.43.0 → 1.45.0). Trivy, which had not run since July, also flagged
-  `golang.org/x/mod` (→ 0.41.0), `golang.org/x/net` (→ 0.60.0) and
-  `google.golang.org/grpc` (→ 1.83.2). `npm audit` reported 2 critical and 6 high advisories in
-  frontend dependencies; `npm audit fix` plus vitest 3 → 5.0.3 clears all of
-  them. The `cmd/prism-gui` module is re-tidied, which also picks up the
-  ec2/cloudwatch drift from #695.
-- **Every security scanner now runs even when an earlier one fails (#698).**
-  The scanners ran in sequence and the first failure skipped the rest, so
-  Trivy and Semgrep had produced no results since ~Jul 20 (Trivy's first run
-  after this change found the five advisories above). Each scanner now
-  runs with `continue-on-error`, and a final step fails the job if any of them
-  failed.
-- **Green the Semgrep SAST scan (15 blocking findings on `main`).** The Security
-  Scan workflow runs Semgrep full-repo on push to `main` and had been red on 15
-  findings (PR scans are diff-aware, so they passed). Root cause for most: prior
-  triage used `//nolint:...,semgrep` comments, which Semgrep does not read — it
-  honors `// nosemgrep: <rule-id>`. Resolved all 15 with real fixes where
-  warranted and justified suppressions otherwise:
-  - **Fixes:** added `MinVersion: tls.VersionTLS12` to the reverse-proxy TLS
-    configs (`pkg/web/proxy.go`); replaced the terminal WebSocket's
-    always-true `CheckOrigin` with a real same-origin/loopback check
-    (`sameOriginCheck`, `pkg/web/terminal.go`) to close a cross-site WebSocket
-    hijacking (CSRF) gap; bound the desktop GUI's local terminal bridge to
-    `127.0.0.1:8948` instead of all interfaces (`cmd/prism-gui/main.go`).
-  - **Justified (`// nosemgrep` with rationale):** SSH `InsecureIgnoreHostKey`
-    TOFU fallbacks (host key recorded + verified on subsequent connects), `math/rand`
-    used for retry jitter (not crypto), `filepath.Clean` (traversal enforced by an
-    `IsAbs` + validator check, #598), an `fmt.Sprintf` HTTP error string
-    mis-flagged as SQL injection, a placeholder cert-pin fingerprint mis-flagged
-    as a secret, MD5 used to verify S3 ETags (not a signature), `ReverseProxy.Director`
-    (drops no headers), and `InsecureSkipVerify` for self-signed EC2 instance
-    certs (#596). Establishes the `nosemgrep` convention for the repo.
+### Changed
+- **Action required on headless machines: set `PRISM_CREDENTIALS_PASSPHRASE`
+  to save profile credentials.** On a host with no OS keychain (for example a
+  Linux server without a Secret Service), saving profile credentials now fails
+  unless `PRISM_CREDENTIALS_PASSPHRASE` is set; the passphrase encrypts the
+  `~/.prism/credentials/*.creds` file. Credentials saved before this release
+  remain readable, and are re-encrypted once the variable is set. Machines with
+  a keychain (macOS, Windows, desktop Linux) need no change (#738).
+- **S3 transfers use `feature/s3/transfermanager`.** `pkg/storage` moved off
+  the deprecated `feature/s3/manager` Uploader/Downloader to its replacement
+  (v0.4.16). Same multipart uploads and ranged parallel downloads, with the
+  same part size and concurrency settings. The localstack test uses
+  `s3.Options.BaseEndpoint` instead of the deprecated global endpoint
+  resolver. Verified with a real 20 MiB round trip against S3.
+- **Dependencies:** AWS SDK for Go v2 group (15 updates, e.g. `service/ec2` →
+  1.338.3), applied to both Go modules (replaces #726).
+- **Dependencies:** AWS SDK for Go v2 group (19 modules, e.g. `service/ec2` →
+  1.325.1) and `stretchr/testify` 1.12.1, applied to both Go modules so
+  `cmd/prism-gui` stays tidy (replaces #702 and #706).
+- **On-demand instance pricing now uses truffle (spawn adoption Phase 3d).** The
+  on-demand compute rate recorded on every instance (`Instance.HourlyRate`) is
+  now sourced from `github.com/spore-host/truffle` via a new
+  `OnDemandPricingClient` (`pkg/aws/ondemand_pricing.go`), mirroring the spot
+  path shipped in #659. This completes the truffle pricing consolidation:
+  truffle wraps the AWS Price List API with a 24h cache and a static fallback and
+  is **region-aware**, replacing Prism's hand-rolled Price List query whose
+  static fallback table was us-east-1-only — so per-region estimates (e.g.
+  us-west-2) are now accurate rather than us-east-1 approximations. The static
+  `getHourlyRate` estimate is retained purely as the on-truffle-error fallback,
+  so `HourlyRate` is never left at 0 on the list/refresh path. The old on-demand
+  Price List code (`GetInstanceHourlyRate`/`queryPricingAPI`/`parsePriceFromJSON`
+  + its 24h cache) is removed; `PricingClient` now holds only EBS volume rates
+  (truffle has no storage pricing). Spot/on-demand rate selection
+  (`EffectiveComputeRate`) is unchanged. Verified against real AWS (t3.large
+  us-west-2 → the correct regional list price).
+- **Spend estimate uses the real spot price for spot instances (#659).** The spend observer's compute
+  estimate previously used `Instance.HourlyRate` (on-demand list price) for every instance, badly
+  over-stating spot workloads (spot is billed 60–90% below list). Prism now captures the real spot
+  rate once per spot instance — via **`github.com/spore-host/truffle`** (prism's first spore.host
+  dependency; `HourlyRate(…, "spot")` → min current spot across AZs) — persists it as
+  `Instance.SpotHourlyRate`, and a new `Instance.EffectiveComputeRate()` selects it over the on-demand
+  rate. Capture is lazy in the instance refresh builder (once, then preserved across refreshes) and
+  fails soft to the on-demand rate on any lookup error, so accrual is never blocked. This makes the
+  ledger estimate accurate for the common HPC/burst case without needing daily Cost Explorer
+  reconciliation. Account-level discounts/credits and Savings Plans/RI remain reconciliation's job.
+- **Real banking/rollover surplus + ledger-backed forecast complete the budget-engine adoption
+  (Phase 3e, #655; closes #645).** `BudgetStatus.Surplus` is now populated for periodic
+  (monthly/weekly/daily) budgets — via the existing `SurplusCalculator.ComputeSurplusWithRollover`
+  over the real ledger cost series, honoring the project's `RolloverEnabled`/`RolloverCap`
+  (project-lifetime budgets stay nil, as they don't bank across periods). The budget forecast moves
+  daemon-side (`pkg/daemon/forecast.go`) and runs the `BudgetPredictor` over the **real** ledger
+  series instead of the empty history the retired `Manager.GetProjectForecast` used, so
+  `CurrentMonthlyRate`/`ForecastData`/exhaustion projections reflect actual spend. Multi-month grant
+  budgets now pace their status read with **`BankAndReserve` × `RateTargetPolicy`** (hold the plan
+  rate, bank underspend) while simple cloud budgets keep `RateAdjust` × `DeadlineFloatPolicy`; the
+  launch gate is unaffected (it never invokes pacing). Requires **budgetengine v0.3.0**, which makes
+  `BankAndReserve` genuinely distinct from `RateAdjust` (previously identical). `Manager` sheds its
+  forecast stub, staying ledger-free.
+- **Cost breakdown / resource usage / trends / monthly report now aggregate the real spend ledger
+  (Phase 3d, #654).** The four cost-analytics surfaces that returned zeros after Phase 3c are computed
+  from the `budgetengine` spend ledger in a new `pkg/daemon/cost_aggregation.go`. Everything derives
+  from one primitive, `ledgerCostSeries`, a day-bucketed fold over the project's events: `estimate`
+  events (which carry `ResourceID` + un-blended `Compute`/`Storage`, #652) attribute per-instance
+  per-day; `billed`/`billed-reversal` reconciliation events (no `ResourceID`) fold into the day's
+  project total only. From that series: `GET /projects/{id}/costs` returns a populated
+  `ProjectCostBreakdown` (per-instance compute/storage + running/stopped hours from `StateHistory`,
+  synthesized per-instance root-volume storage lines); `GET /projects/{id}/usage` returns real
+  `ProjectResourceUsage` (active/total counts, compute hours, idle savings); the monthly report and
+  budget-history endpoints render the real series; and `BudgetStatus.BurnRate` is now populated (via
+  the existing `BurnRateCalculator`). **`GET /cost/trends`** now emits the `{date, spent, budget}`
+  shape the CLI history table actually renders (the pre-3c stub emitted `CostDataPoint`, which the CLI
+  never parsed, so `prism budget history` was always blank). The Manager's `GetProjectCostBreakdown`/
+  `GetProjectResourceUsage` stubs are removed — the daemon owns cost aggregation, keeping `pkg/project`
+  ledger-free. `BudgetStatus.Surplus` stays nil pending banking/rollover (Phase 3e, #655).
+- **Budget status is now derived from the spend ledger, not the retired tracker (Phase 3c, #653).**
+  The daemon computes `BudgetStatus` (`pkg/daemon/budget_status.go`) directly from the `budgetengine`
+  spend ledger + the project's embedded budget plan: `SpentAmount` is the ledger fold (falling back to
+  the project's cached `SpentAmount` only while the ledger is empty), and `RemainingBudget` /
+  `SpentPercentage` / `ProjectedMonthlySpend` / days-until-exhausted derive from that and the engine's
+  `BurnState`. The launch gate and the status readout now fold the **same** events — there is no
+  longer a parallel budget model. `pkg/project.Manager` sheds all budget concerns and returns to pure
+  project identity/lifecycle (its `budgetTracker`, `CheckBudgetStatus`, and `SetAlerter` are removed;
+  `NewManagerForScope`/`NewManagerWithStore` drop the tracker argument). Cost-history / trends /
+  monthly-report endpoints keep their response shape but return an empty series until the
+  ledger-derived aggregates land in Phase 3d (#654). `cost.BudgetTrackerAdapter` is renamed
+  `cost.FuncCostDataProvider` (closure-backed, now fed by the project manager + ledger).
+- **Spend ledger records per-resource, per-component line items (#652).** The spend observer now
+  populates the v0.2.0 `SpendEvent` line-item fields: each event carries `ResourceID` (instance id)
+  and an **un-blended** split of `Compute` and `Storage` (Network unmodeled) that sums to `Amount`.
+  Compute and storage accrue on **independent clocks** — compute on running-hours (it stops when the
+  instance stops), storage on total-hours at the standard EBS rate (it persists and bills while
+  stopped). Consequently the observer now also accrues for stopped-but-storage-bearing instances, not
+  only running ones. This gives the ledger the detail Phase 3d aggregates into the cost-breakdown /
+  resource-usage / report DTOs. Reconciliation now tracks estimate and billed baselines in their own
+  units so the two never conflate.
+- **Budget engine adoption, Phase 1 (#643).** The launch-time monthly-budget gate
+  (`Server.isLaunchBlockedByBudget`) now makes its projected-over-limit decision via the standalone
+  `github.com/scttfrdmn/budgetengine` library (`engine.CheckLaunch`) instead of an inline
+  comparison. A new `pkg/daemon/budget_engine.go` adapter feeds the engine a single-source,
+  read-only view of the project's existing embedded budget — **no change to budget storage, the
+  spend model, or the HTTP API.** Block/allow behavior is a verified parity of the previous
+  flat-limit check (`budget_engine_test.go`); fail-open on engine error is preserved. Depends on
+  `github.com/scttfrdmn/budgetengine v0.1.0` (a public, zero-dependency module). Later phases move
+  spend to an event ledger (#644) and retire the JSON tracker (#645).
+
+### Removed
+- **About 1,350 lines of unused code** (staticcheck U1000), all confirmed
+  unreachable before removal: the superseded user-management HTTP handlers
+  (`/api/v1/users` has been served by the research-user handlers, which cover
+  every call the GUI makes), the never-registered `prism uninstall` command
+  (the standalone `scripts/*uninstall*.sh` remain), the synchronous
+  instance-readiness waiters (disabled because they caused HTTP timeouts;
+  readiness is tracked asynchronously), the CLI's test-only
+  `LaunchProgressMonitor` strategy types, and assorted dead helpers.
+- **`pkg/project.BudgetTracker` and its `budget_data.json` persistence (Phase 3c, #653).** The legacy
+  budget tracker — a parallel spend/analytics model that was hollow in production (its
+  `UpdateProjectCosts`/`UpdateProjectSpending` had no prod callers and its auto-action path was
+  inert) — is deleted in favor of the single `budgetengine` ledger. No working behavior is lost;
+  live budget enforcement via the engine `ActionSink` is tracked separately (#656).
 
 ### Fixed
 - **`prism workspace cost --billed` says what each figure covers.** When the
@@ -355,217 +444,122 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   asserted (deleted user and group are now checked to be nil; the bulk
   invitation test checks results against its entries).
 
-### Removed
-- **About 1,350 lines of unused code** (staticcheck U1000), all confirmed
-  unreachable before removal: the superseded user-management HTTP handlers
-  (`/api/v1/users` has been served by the research-user handlers, which cover
-  every call the GUI makes), the never-registered `prism uninstall` command
-  (the standalone `scripts/*uninstall*.sh` remain), the synchronous
-  instance-readiness waiters (disabled because they caused HTTP timeouts;
-  readiness is tracked asynchronously), the CLI's test-only
-  `LaunchProgressMonitor` strategy types, and assorted dead helpers.
+### Security
+- **Credential files are really encrypted (#738).** When the OS keychain can't
+  hold a profile's AWS credentials, Prism writes an encrypted
+  `~/.prism/credentials/<profile>.creds`. Its key was derived from the home
+  directory path and service name with a static salt, so anyone who could read
+  the file could derive the key. The key is now either a random 256-bit key
+  held in the OS keychain, or, on headless hosts with no keychain, derived with
+  scrypt and a per-file salt from a passphrase in the new
+  **`PRISM_CREDENTIALS_PASSPHRASE`** environment variable. With neither,
+  storing to the file fails with that guidance instead of writing a derivable
+  ciphertext. Files in the old format are still read and are re-encrypted on
+  first read when a key source is available.
+- **SSH host keys are verified (#739).** Every ssh/scp call (port-forwarding
+  tunnels, launch-progress probes, Jupyter token lookup, template application)
+  used `StrictHostKeyChecking=no` with `UserKnownHostsFile=/dev/null`, so
+  anyone in the network path, or holding a recycled public IP, could
+  impersonate an instance. Host keys are now recorded on first use and checked
+  on every later connection, in `~/.prism/ssh_known_hosts` (new package
+  `pkg/sshhostkeys`). They're keyed by instance ID via `HostKeyAlias`, not by
+  IP, because EC2 reuses public IPs. Deleting an instance, or the state monitor
+  seeing it terminated, removes its key. The unreachable
+  `internal/cli/idle_configure.go` (never registered as a command, with an
+  instance lookup that could not match the real client) is removed rather than
+  fixed.
+- **`prism workspace connect` no longer runs a shell (#740).** The CLI executed
+  the daemon's SSH connection string with `sh -c`, so a shell metacharacter in
+  any part of it (user, IP, key path from instance state) would have run
+  locally. The connect API now also returns the endpoint in structured form
+  (`ssh: {user, host, port, key_path}`). The CLI runs `ssh` with an argument
+  vector ending `--`, user@host. The GUI's "open terminal" can't avoid a shell
+  (terminal emulators run one), so it validates the values (POSIX login name,
+  plain IP or hostname, port) and quotes every argument. `connection_info`
+  remains for display. The client no longer decodes the connect response into a
+  string map, which failed on desktop instances' numeric `dcv_port`.
+- **Cross-site WebSocket hijacking closed.** The GUI's terminal server
+  (`127.0.0.1:8948`, no other authentication) accepted WebSocket handshakes
+  from any origin and hands out SSH sessions, so any web page the user visited
+  while the GUI ran could open a shell on their workstations. The daemon's SSH
+  proxy accepted any origin *containing* "localhost" (`https://localhost.evil.com`).
+  All upgraders now use `web.LocalOriginCheck`: exact loopback hosts, the
+  request's own host, and the Wails webview only.
+- **SSRF in the AWS console proxy.** `/aws-proxy/` put the `region` query
+  parameter straight into the reverse-proxy target host, so `evil.com/#`
+  pointed it (and any federation token) at an arbitrary host. `region` must
+  now be a well-formed AWS region.
+- **Zip slip and decompression bomb on profile import.** Archive entries that
+  resolve outside the extraction directory are rejected and each file is
+  capped at 64 MiB. Credential export archives were world-readable under the
+  default umask; they are now 0600.
+- **Path traversal through untrusted names.** An invitation token became a
+  file name under `received/`, and a research username from the HTTP path
+  became a file name, so `Delete` could remove any reachable `.json`. Both
+  are validated; SSH key-store IDs and repository template paths too.
+- **Certificate pinning on resumed TLS sessions.** The registry client's pin
+  check now runs via `VerifyConnection` on every connection; resumed sessions
+  used to skip it.
+- **Command injection hardening.** Windows `openBrowser` used `cmd /c start
+  <url>` (`&` in a URL was a command separator). ssh/scp arguments end option
+  parsing with `--`. `connect --user` must be a POSIX username (the connection
+  string runs via `sh -c`). SSM file-transfer paths reject `"`, `\` and `$`.
+  Template scripts run through a heredoc with a random delimiter (a line
+  `EOF` used to end it early).
+- **Policy evaluation fails closed.** Template-access, resource-limit and
+  research-user policies whose conditions can't be decoded now deny instead of
+  allowing.
+- **Private files are private.** Files and directories under `~/.prism`
+  holding config, state, credentials, keys, tokens, invitations, course
+  reports or caches are created 0600/0700 (existing directories keep their
+  mode). SSH public keys stay 0644.
+- **golangci-lint release gate passes.** `make lint` was failing on 2,856
+  golangci-lint findings. `.golangci.yml` now keeps the bug-finding linters
+  strict (errcheck, gosec, bodyclose, staticcheck, gocritic diagnostics) and
+  holds style and complexity to limits the code meets: goconst, unparam and
+  prealloc are off, staticcheck QF* and gocritic style checks are off, and
+  cyclop is 30, gocognit 60. All remaining findings are fixed, including
+  hundreds of dropped errors and three slice-aliasing `append` bugs; every
+  suppression names its rule and reason. The integration-tagged tests in
+  `pkg/aws` and `pkg/ami` compile again.
+- **Green the Security Scan again (red on `main` since late July).** govulncheck
+  flagged 10 reachable vulnerabilities: eight in the Go standard library (Go
+  1.26.5 → 1.26.9 in both `go.mod` files and the CI/release workflows),
+  `golang.org/x/crypto` (0.53.0 → 0.57.0) and `go.opentelemetry.io/otel/sdk`
+  (1.43.0 → 1.45.0). Trivy, which had not run since July, also flagged
+  `golang.org/x/mod` (→ 0.41.0), `golang.org/x/net` (→ 0.60.0) and
+  `google.golang.org/grpc` (→ 1.83.2). `npm audit` reported 2 critical and 6 high advisories in
+  frontend dependencies; `npm audit fix` plus vitest 3 → 5.0.3 clears all of
+  them. The `cmd/prism-gui` module is re-tidied, which also picks up the
+  ec2/cloudwatch drift from #695.
+- **Every security scanner now runs even when an earlier one fails (#698).**
+  The scanners ran in sequence and the first failure skipped the rest, so
+  Trivy and Semgrep had produced no results since ~Jul 20 (Trivy's first run
+  after this change found the five advisories above). Each scanner now
+  runs with `continue-on-error`, and a final step fails the job if any of them
+  failed.
+- **Green the Semgrep SAST scan (15 blocking findings on `main`).** The Security
+  Scan workflow runs Semgrep full-repo on push to `main` and had been red on 15
+  findings (PR scans are diff-aware, so they passed). Root cause for most: prior
+  triage used `//nolint:...,semgrep` comments, which Semgrep does not read — it
+  honors `// nosemgrep: <rule-id>`. Resolved all 15 with real fixes where
+  warranted and justified suppressions otherwise:
+  - **Fixes:** added `MinVersion: tls.VersionTLS12` to the reverse-proxy TLS
+    configs (`pkg/web/proxy.go`); replaced the terminal WebSocket's
+    always-true `CheckOrigin` with a real same-origin/loopback check
+    (`sameOriginCheck`, `pkg/web/terminal.go`) to close a cross-site WebSocket
+    hijacking (CSRF) gap; bound the desktop GUI's local terminal bridge to
+    `127.0.0.1:8948` instead of all interfaces (`cmd/prism-gui/main.go`).
+  - **Justified (`// nosemgrep` with rationale):** SSH `InsecureIgnoreHostKey`
+    TOFU fallbacks (host key recorded + verified on subsequent connects), `math/rand`
+    used for retry jitter (not crypto), `filepath.Clean` (traversal enforced by an
+    `IsAbs` + validator check, #598), an `fmt.Sprintf` HTTP error string
+    mis-flagged as SQL injection, a placeholder cert-pin fingerprint mis-flagged
+    as a secret, MD5 used to verify S3 ETags (not a signature), `ReverseProxy.Director`
+    (drops no headers), and `InsecureSkipVerify` for self-signed EC2 instance
+    certs (#596). Establishes the `nosemgrep` convention for the repo.
 
-### Changed
-- **Action required on headless machines: set `PRISM_CREDENTIALS_PASSPHRASE`
-  to save profile credentials.** On a host with no OS keychain (for example a
-  Linux server without a Secret Service), saving profile credentials now fails
-  unless `PRISM_CREDENTIALS_PASSPHRASE` is set; the passphrase encrypts the
-  `~/.prism/credentials/*.creds` file. Credentials saved before this release
-  remain readable, and are re-encrypted once the variable is set. Machines with
-  a keychain (macOS, Windows, desktop Linux) need no change (#738).
-- **S3 transfers use `feature/s3/transfermanager`.** `pkg/storage` moved off
-  the deprecated `feature/s3/manager` Uploader/Downloader to its replacement
-  (v0.4.16). Same multipart uploads and ranged parallel downloads, with the
-  same part size and concurrency settings. The localstack test uses
-  `s3.Options.BaseEndpoint` instead of the deprecated global endpoint
-  resolver. Verified with a real 20 MiB round trip against S3.
-- **Dependencies:** AWS SDK for Go v2 group (15 updates, e.g. `service/ec2` →
-  1.338.3), applied to both Go modules (replaces #726).
-- **Dependencies:** AWS SDK for Go v2 group (19 modules, e.g. `service/ec2` →
-  1.325.1) and `stretchr/testify` 1.12.1, applied to both Go modules so
-  `cmd/prism-gui` stays tidy (replaces #702 and #706).
-- **On-demand instance pricing now uses truffle (spawn adoption Phase 3d).** The
-  on-demand compute rate recorded on every instance (`Instance.HourlyRate`) is
-  now sourced from `github.com/spore-host/truffle` via a new
-  `OnDemandPricingClient` (`pkg/aws/ondemand_pricing.go`), mirroring the spot
-  path shipped in #659. This completes the truffle pricing consolidation:
-  truffle wraps the AWS Price List API with a 24h cache and a static fallback and
-  is **region-aware**, replacing Prism's hand-rolled Price List query whose
-  static fallback table was us-east-1-only — so per-region estimates (e.g.
-  us-west-2) are now accurate rather than us-east-1 approximations. The static
-  `getHourlyRate` estimate is retained purely as the on-truffle-error fallback,
-  so `HourlyRate` is never left at 0 on the list/refresh path. The old on-demand
-  Price List code (`GetInstanceHourlyRate`/`queryPricingAPI`/`parsePriceFromJSON`
-  + its 24h cache) is removed; `PricingClient` now holds only EBS volume rates
-  (truffle has no storage pricing). Spot/on-demand rate selection
-  (`EffectiveComputeRate`) is unchanged. Verified against real AWS (t3.large
-  us-west-2 → the correct regional list price).
-
-### Added
-- **GUI launch form exposes the opt-in launch options.** The launch modal now
-  offers **Spot max price** ($/hr, enabled only when Spot is selected), an **EFA**
-  toggle, and a **Placement group** field — the GUI counterpart to the Phase-3a
-  CLI flags. This also fixes a latent bug: the modal's existing **Spot** toggle
-  was in form state but never sent to the daemon, so it had no effect; it (and the
-  three new fields) now thread through `SafePrismAPI.launchInstance` to the
-  `/api/v1/instances` request with the `spot`/`spot_max_price`/`efa`/
-  `placement_group` keys matching `pkg/types.LaunchRequest`. All default-off.
-- **spawn adoption — opt-in launch capabilities (Phase 3a).** Three new opt-in
-  `prism workspace launch` flags, all default-off (empty/false = today's
-  behavior): `--spot-max-price <$/hr>` (a real spot bid cap; requires `--spot`),
-  `--efa` (attach an Elastic Fabric Adapter NIC for MPI/HPC), and
-  `--placement-group <name>` (launch into a cluster placement group). They thread
-  through `types.LaunchRequest` → `launch.ToLaunchConfig` → the EC2 launcher
-  (`configToRunInput` builds the EFA NIC and placement group, mirroring spawn so
-  the eventual launch swap stays behavior-identical). Validation:
-  `--spot-max-price` without `--spot` is rejected, and `--efa` on a non-EFA
-  instance type is rejected via a new `supportsEFA` capability allowlist
-  (modeled on `supportsHibernation`). CLI-only for now (the GUI launch form
-  already omits optional launch fields from the wire); GUI exposure is a
-  follow-up. Third step of the spawn-adoption milestone.
-- **spawn adoption — instance lifecycle now runs on spawn (Phase 2).** Instance
-  stop/start/hibernate/terminate now route through `github.com/spore-host/spawn`'s
-  client via a `hybridLauncher` (`pkg/aws/hybrid_launcher.go`): lifecycle → spawn,
-  launch → Prism's existing EC2 path. Behavior is preserved — spawn's `StopInstance`
-  maps hibernate directly, its errors are `%w`-wrapped so the graceful "already
-  gone" delete still fires, and Prism's transient-failure retry is kept by wrapping
-  the spawn calls in `WithRetry`. Launch deliberately stays on Prism's launcher for
-  now: spawn v0.65.0 hardcodes the root block-device name to `/dev/xvda` and doesn't
-  derive it from the AMI, which would misplace the root-volume-size override on
-  Prism's Ubuntu/Rocky AMIs (root `/dev/sda1`); launch moves to spawn once that gap
-  is closed upstream. Validated end-to-end against real AWS
-  (`test/integration/spawn_lifecycle_test.go`: launch → stop → start → hibernate
-  → resume → terminate on a live Ubuntu 24.04 instance). Second step of the
-  spawn-adoption milestone.
-- **spawn adoption — launch/lifecycle seam (Phase 1).** Introduced a narrow, host-owned
-  `Launcher` port (`pkg/launch`) expressed in `github.com/spore-host/spawn`'s own types
-  (`Launch(ctx, spawn.LaunchConfig) (*spawn.LaunchResult, error)` + stop/start/terminate), plus a
-  pure `ToLaunchConfig` mapping. Prism's EC2 launch and lifecycle
-  (`Manager.LaunchInstance`/`Stop`/`Start`/`Hibernate`/`Delete`) now flow through this port,
-  defaulting to an EC2-backed implementation (`pkg/aws/ec2_launcher.go`) that reproduces today's
-  behavior byte-for-byte — public-IP NIC, gp3 root volume, spot/hibernation options, AZ failover.
-  This is the seam-only refactor: no behavior change and the CLI/GUI wire contracts and the daemon
-  budget launch-gate are untouched; a later phase swaps the default for `*spawn.Client` (which
-  already satisfies the port). Pins `spore-host/spawn v0.65.0` (transitively bumps
-  `scttfrdmn/substrate` v0.70.0 → v0.71.0). First step of the spawn-adoption milestone, following
-  the truffle adoption (#659).
-- **Live budget enforcement — auto-actions fire again (#656).** Per-project budget auto-actions
-  (`AutoActions[]`: threshold %% → hibernate/stop/prevent-launch/notify) and the safety cushion
-  (headroom → one action) are evaluated against the `budgetengine` spend ledger on the daemon's
-  monitoring tick and executed when breached — restoring behavior that went dead when the legacy
-  BudgetTracker was retired. A new daemon `budgetEnforcer` (`pkg/daemon/budget_enforcer.go`) folds each
-  budgeted project's ledger via the same `budgetStatus` the API returns, so enforcement and the status
-  readout agree; it drives the existing `Server.ExecuteHibernateAll/StopAll/PreventLaunch` executors
-  and the surviving `CushionEvaluator`, and sends notifications through the alert dispatcher
-  (Slack webhook when `PRISM_SLACK_WEBHOOK` is set, else log). **Off by default** — destructive actions
-  require an explicit opt-in via `budget_enforcement_enabled` (or `PRISM_BUDGET_ENFORCEMENT=true`);
-  the evaluation cadence is `budget_enforcement_interval_minutes` (default 10, 1-minute floor).
-  Dedup is fire-once-per-budget-period via `LastTriggered` timestamps (persisted on each action and the
-  cushion), so a breach acts once per month rather than every tick.
-
-### Changed
-- **Spend estimate uses the real spot price for spot instances (#659).** The spend observer's compute
-  estimate previously used `Instance.HourlyRate` (on-demand list price) for every instance, badly
-  over-stating spot workloads (spot is billed 60–90% below list). Prism now captures the real spot
-  rate once per spot instance — via **`github.com/spore-host/truffle`** (prism's first spore.host
-  dependency; `HourlyRate(…, "spot")` → min current spot across AZs) — persists it as
-  `Instance.SpotHourlyRate`, and a new `Instance.EffectiveComputeRate()` selects it over the on-demand
-  rate. Capture is lazy in the instance refresh builder (once, then preserved across refreshes) and
-  fails soft to the on-demand rate on any lookup error, so accrual is never blocked. This makes the
-  ledger estimate accurate for the common HPC/burst case without needing daily Cost Explorer
-  reconciliation. Account-level discounts/credits and Savings Plans/RI remain reconciliation's job.
-- **Real banking/rollover surplus + ledger-backed forecast complete the budget-engine adoption
-  (Phase 3e, #655; closes #645).** `BudgetStatus.Surplus` is now populated for periodic
-  (monthly/weekly/daily) budgets — via the existing `SurplusCalculator.ComputeSurplusWithRollover`
-  over the real ledger cost series, honoring the project's `RolloverEnabled`/`RolloverCap`
-  (project-lifetime budgets stay nil, as they don't bank across periods). The budget forecast moves
-  daemon-side (`pkg/daemon/forecast.go`) and runs the `BudgetPredictor` over the **real** ledger
-  series instead of the empty history the retired `Manager.GetProjectForecast` used, so
-  `CurrentMonthlyRate`/`ForecastData`/exhaustion projections reflect actual spend. Multi-month grant
-  budgets now pace their status read with **`BankAndReserve` × `RateTargetPolicy`** (hold the plan
-  rate, bank underspend) while simple cloud budgets keep `RateAdjust` × `DeadlineFloatPolicy`; the
-  launch gate is unaffected (it never invokes pacing). Requires **budgetengine v0.3.0**, which makes
-  `BankAndReserve` genuinely distinct from `RateAdjust` (previously identical). `Manager` sheds its
-  forecast stub, staying ledger-free.
-- **Cost breakdown / resource usage / trends / monthly report now aggregate the real spend ledger
-  (Phase 3d, #654).** The four cost-analytics surfaces that returned zeros after Phase 3c are computed
-  from the `budgetengine` spend ledger in a new `pkg/daemon/cost_aggregation.go`. Everything derives
-  from one primitive, `ledgerCostSeries`, a day-bucketed fold over the project's events: `estimate`
-  events (which carry `ResourceID` + un-blended `Compute`/`Storage`, #652) attribute per-instance
-  per-day; `billed`/`billed-reversal` reconciliation events (no `ResourceID`) fold into the day's
-  project total only. From that series: `GET /projects/{id}/costs` returns a populated
-  `ProjectCostBreakdown` (per-instance compute/storage + running/stopped hours from `StateHistory`,
-  synthesized per-instance root-volume storage lines); `GET /projects/{id}/usage` returns real
-  `ProjectResourceUsage` (active/total counts, compute hours, idle savings); the monthly report and
-  budget-history endpoints render the real series; and `BudgetStatus.BurnRate` is now populated (via
-  the existing `BurnRateCalculator`). **`GET /cost/trends`** now emits the `{date, spent, budget}`
-  shape the CLI history table actually renders (the pre-3c stub emitted `CostDataPoint`, which the CLI
-  never parsed, so `prism budget history` was always blank). The Manager's `GetProjectCostBreakdown`/
-  `GetProjectResourceUsage` stubs are removed — the daemon owns cost aggregation, keeping `pkg/project`
-  ledger-free. `BudgetStatus.Surplus` stays nil pending banking/rollover (Phase 3e, #655).
-- **Budget status is now derived from the spend ledger, not the retired tracker (Phase 3c, #653).**
-  The daemon computes `BudgetStatus` (`pkg/daemon/budget_status.go`) directly from the `budgetengine`
-  spend ledger + the project's embedded budget plan: `SpentAmount` is the ledger fold (falling back to
-  the project's cached `SpentAmount` only while the ledger is empty), and `RemainingBudget` /
-  `SpentPercentage` / `ProjectedMonthlySpend` / days-until-exhausted derive from that and the engine's
-  `BurnState`. The launch gate and the status readout now fold the **same** events — there is no
-  longer a parallel budget model. `pkg/project.Manager` sheds all budget concerns and returns to pure
-  project identity/lifecycle (its `budgetTracker`, `CheckBudgetStatus`, and `SetAlerter` are removed;
-  `NewManagerForScope`/`NewManagerWithStore` drop the tracker argument). Cost-history / trends /
-  monthly-report endpoints keep their response shape but return an empty series until the
-  ledger-derived aggregates land in Phase 3d (#654). `cost.BudgetTrackerAdapter` is renamed
-  `cost.FuncCostDataProvider` (closure-backed, now fed by the project manager + ledger).
-- **Spend ledger records per-resource, per-component line items (#652).** The spend observer now
-  populates the v0.2.0 `SpendEvent` line-item fields: each event carries `ResourceID` (instance id)
-  and an **un-blended** split of `Compute` and `Storage` (Network unmodeled) that sums to `Amount`.
-  Compute and storage accrue on **independent clocks** — compute on running-hours (it stops when the
-  instance stops), storage on total-hours at the standard EBS rate (it persists and bills while
-  stopped). Consequently the observer now also accrues for stopped-but-storage-bearing instances, not
-  only running ones. This gives the ledger the detail Phase 3d aggregates into the cost-breakdown /
-  resource-usage / report DTOs. Reconciliation now tracks estimate and billed baselines in their own
-  units so the two never conflate.
-
-### Removed
-- **`pkg/project.BudgetTracker` and its `budget_data.json` persistence (Phase 3c, #653).** The legacy
-  budget tracker — a parallel spend/analytics model that was hollow in production (its
-  `UpdateProjectCosts`/`UpdateProjectSpending` had no prod callers and its auto-action path was
-  inert) — is deleted in favor of the single `budgetengine` ledger. No working behavior is lost;
-  live budget enforcement via the engine `ActionSink` is tracked separately (#656).
-
-### Added
-- **Opt-in Cost Explorer billed-cost reconciliation (#644).** The budget spend ledger can now
-  reconcile its list-price estimates against authoritative AWS Cost Explorer billed cost, so a
-  project's recorded spend converges on real dollars (e.g. reflecting RIs/Savings Plans/spot). It is
-  **off by default** — CE calls cost money (~$0.01/call, 1–2 per instance), are rate-limited, and lag
-  ~a day — and enabled via `daemon_config.json` (`cost_reconciliation_enabled`) or
-  `PRISM_COST_RECONCILIATION=true`. The frequency is configurable
-  (`cost_reconciliation_interval_minutes`, default 1440 = daily; or `PRISM_COST_RECONCILIATION_INTERVAL`
-  as a Go duration) and clamped to a **1-hour floor**. When the per-instance `prism:instance-id`
-  cost-allocation tag isn't active in AWS Billing, reconciliation is skipped (the region-total blob
-  isn't per-instance) and the estimate is kept, with a warning to activate the tag. Reconciliation is
-  additionally skipped in test/reduced mode; the reversal+billed correction is idempotent.
-- **Budget engine adoption, Phase 2 (#644) — real spend ledger.** Prism now accrues per-instance
-  spend into an append-only, seam-backed `budgetengine` ledger, replacing Phase 1's synthetic
-  single spend event. A spend observer (`pkg/daemon/spend_observer.go`) runs on the `StateMonitor`
-  tick, internally throttled to a 10-minute accrual cadence, and appends a `SpendEvent` per running
-  project-attributed instance as the **delta** of a cumulative list-price estimate
-  (`HourlyRate × runtime`). A per-instance checkpoint (persisted through the seam) makes accrual
-  idempotent across restarts — no double-counting. The launch gate now reads this real ledger as
-  its `SpendSource` when populated, falling back to the cached `SpentAmount` while the ledger warms
-  up (so it never becomes more permissive than Phase 1). Spend is project-scoped for now
-  (`AllocationID = "project"`). Authoritative Cost Explorer reconciliation and per-funding-allocation
-  attribution are deferred to follow-ups; `BudgetTracker`/HTTP handlers are untouched.
-
-### Changed
-- **Budget engine adoption, Phase 1 (#643).** The launch-time monthly-budget gate
-  (`Server.isLaunchBlockedByBudget`) now makes its projected-over-limit decision via the standalone
-  `github.com/scttfrdmn/budgetengine` library (`engine.CheckLaunch`) instead of an inline
-  comparison. A new `pkg/daemon/budget_engine.go` adapter feeds the engine a single-source,
-  read-only view of the project's existing embedded budget — **no change to budget storage, the
-  spend model, or the HTTP API.** Block/allow behavior is a verified parity of the previous
-  flat-limit check (`budget_engine_test.go`); fail-open on engine error is preserved. Depends on
-  `github.com/scttfrdmn/budgetengine v0.1.0` (a public, zero-dependency module). Later phases move
-  spend to an event ledger (#644) and retire the JSON tracker (#645).
+## [0.36.1] - 2026-07-08
 
 ### Changed
 - **Bump Wails v3 `v3.0.0-alpha.74` → `v3.0.0-alpha.102`** in `cmd/prism-gui`. No application code
