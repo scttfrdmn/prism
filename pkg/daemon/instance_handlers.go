@@ -15,6 +15,7 @@ import (
 	"github.com/scttfrdmn/prism/pkg/profile"
 	"github.com/scttfrdmn/prism/pkg/project"
 	"github.com/scttfrdmn/prism/pkg/rbac"
+	"github.com/scttfrdmn/prism/pkg/sshhostkeys"
 	"github.com/scttfrdmn/prism/pkg/templates"
 	"github.com/scttfrdmn/prism/pkg/types"
 )
@@ -998,6 +999,10 @@ func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request, id
 		// Update local state with real AWS state (shutting-down or terminated)
 		if updatedInstance != nil {
 			_ = s.stateManager.SaveInstance(*updatedInstance)
+			// The instance is being terminated; drop its recorded SSH host key.
+			if err := sshhostkeys.Forget(updatedInstance.ID); err != nil {
+				log.Printf("Warning: Failed to forget host key of %s: %v", logSafe(instanceName), err) //nolint:gosec // G706: instanceName is CR/LF-escaped by logSafe, which the taint analysis does not recognise
+			}
 		}
 
 		w.WriteHeader(http.StatusNoContent)

@@ -82,6 +82,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `spore-host/spawn` v0.65.0 → v0.72.0.
 
 ### Security
+- **SSH host keys are verified (#739).** Every ssh/scp call (port-forwarding
+  tunnels, launch-progress probes, Jupyter token lookup, template application)
+  used `StrictHostKeyChecking=no` with `UserKnownHostsFile=/dev/null`, so
+  anyone in the network path, or holding a recycled public IP, could
+  impersonate an instance. Host keys are now recorded on first use and checked
+  on every later connection, in `~/.prism/ssh_known_hosts` (new package
+  `pkg/sshhostkeys`). They're keyed by instance ID via `HostKeyAlias`, not by
+  IP, because EC2 reuses public IPs. Deleting an instance, or the state monitor
+  seeing it terminated, removes its key. The unreachable
+  `internal/cli/idle_configure.go` (never registered as a command, with an
+  instance lookup that could not match the real client) is removed rather than
+  fixed.
 - **Cross-site WebSocket hijacking closed.** The GUI's terminal server
   (`127.0.0.1:8948`, no other authentication) accepted WebSocket handshakes
   from any origin and hands out SSH sessions, so any web page the user visited
