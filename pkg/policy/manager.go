@@ -208,7 +208,7 @@ func (m *Manager) evaluateTemplateAccessPolicy(policy *Policy, request *PolicyRe
 	var templatePolicy TemplateAccessPolicy
 	if err := decodeConditions(policy.Conditions, &templatePolicy); err != nil {
 		// Fail closed: a malformed policy must not silently grant access.
-		return false, fmt.Sprintf("Invalid policy conditions: %v", err)
+		return true, fmt.Sprintf("Invalid policy conditions: %v", err)
 	}
 
 	templateName := request.Resource
@@ -248,7 +248,7 @@ func (m *Manager) evaluateResourceLimitsPolicy(policy *Policy, request *PolicyRe
 	var limits ResourceLimitsPolicy
 	if err := decodeConditions(policy.Conditions, &limits); err != nil {
 		// Fail closed: a malformed policy must not silently grant access.
-		return false, fmt.Sprintf("Invalid policy conditions: %v", err)
+		return true, fmt.Sprintf("Invalid policy conditions: %v", err)
 	}
 
 	ctx := request.Context
@@ -320,7 +320,7 @@ func (m *Manager) evaluateResearchUserPolicy(policy *Policy, request *PolicyRequ
 	var researchPolicy ResearchUserPolicy
 	if err := decodeConditions(policy.Conditions, &researchPolicy); err != nil {
 		// Fail closed: a malformed policy must not silently grant access.
-		return false, fmt.Sprintf("Invalid policy conditions: %v", err)
+		return true, fmt.Sprintf("Invalid policy conditions: %v", err)
 	}
 
 	action := request.Action
