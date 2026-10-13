@@ -366,6 +366,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `LaunchProgressMonitor` strategy types, and assorted dead helpers.
 
 ### Changed
+- **Action required on headless machines: set `PRISM_CREDENTIALS_PASSPHRASE`
+  to save profile credentials.** On a host with no OS keychain (for example a
+  Linux server without a Secret Service), saving profile credentials now fails
+  unless `PRISM_CREDENTIALS_PASSPHRASE` is set; the passphrase encrypts the
+  `~/.prism/credentials/*.creds` file. Credentials saved before this release
+  remain readable, and are re-encrypted once the variable is set. Machines with
+  a keychain (macOS, Windows, desktop Linux) need no change (#738).
 - **S3 transfers use `feature/s3/transfermanager`.** `pkg/storage` moved off
   the deprecated `feature/s3/manager` Uploader/Downloader to its replacement
   (v0.4.16). Same multipart uploads and ranged parallel downloads, with the
