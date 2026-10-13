@@ -8,7 +8,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -30,13 +29,7 @@ func setupLocalStackManager(t *testing.T) *Manager {
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion("us-east-1"),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("test", "test", "")),
-		config.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
-			func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-				return aws.Endpoint{
-					URL:           localstackEndpoint,
-					SigningRegion: "us-east-1",
-				}, nil
-			})),
+		config.WithBaseEndpoint(localstackEndpoint),
 	)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -125,15 +118,15 @@ func TestIntegrationCreateEBSVolume(t *testing.T) {
 		t.Errorf("Volume type = %s, want %s", volume.VolumeType, req.VolumeType)
 	}
 
-	if volume.SizeGB != 100 {
-		t.Errorf("Volume size = %d, want 100", volume.SizeGB)
+	if volume.SizeGB == nil || *volume.SizeGB != 100 {
+		t.Errorf("Volume size = %v, want 100", volume.SizeGB)
 	}
 
-	if volume.IOPS <= 0 {
+	if volume.IOPS == nil || *volume.IOPS <= 0 {
 		t.Error("GP3 volume should have positive IOPS")
 	}
 
-	if volume.Throughput <= 0 {
+	if volume.Throughput == nil || *volume.Throughput <= 0 {
 		t.Error("GP3 volume should have positive throughput")
 	}
 
