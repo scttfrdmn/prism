@@ -403,12 +403,37 @@ func (c *HTTPClient) ConnectInstance(ctx context.Context, name string) (string, 
 	}
 	defer resp.Body.Close()
 
-	var result map[string]string
+	// A struct, not map[string]string: the response also carries non-string fields
+	// (dcv_port, the structured "ssh" object) that a string map can't decode.
+	var result struct {
+		ConnectionInfo string `json:"connection_info"`
+	}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return "", err
 	}
 
-	return result["connection_info"], nil
+	return result.ConnectionInfo, nil
+}
+
+// GetSSHConnection gets an instance's SSH endpoint in structured form, so the caller can run ssh
+// with an argument vector instead of passing a command string to a shell (#740).
+func (c *HTTPClient) GetSSHConnection(ctx context.Context, name string) (*types.SSHConnection, error) {
+	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/instances/%s/connect", name), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		SSH *types.SSHConnection `json:"ssh"`
+	}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	if result.SSH == nil || result.SSH.Host == "" || result.SSH.User == "" {
+		return nil, fmt.Errorf("the daemon did not return structured SSH details for %s; it may be an older version -- restart it with 'prism admin daemon restart'", name)
+	}
+	return result.SSH, nil
 }
 
 // ExecInstance executes a command on an instance

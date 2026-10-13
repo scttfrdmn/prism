@@ -82,6 +82,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `spore-host/spawn` v0.65.0 → v0.72.0.
 
 ### Security
+- **`prism workspace connect` no longer runs a shell (#740).** The CLI executed
+  the daemon's SSH connection string with `sh -c`, so a shell metacharacter in
+  any part of it (user, IP, key path from instance state) would have run
+  locally. The connect API now also returns the endpoint in structured form
+  (`ssh: {user, host, port, key_path}`). The CLI runs `ssh` with an argument
+  vector ending `--`, user@host. The GUI's "open terminal" can't avoid a shell
+  (terminal emulators run one), so it validates the values (POSIX login name,
+  plain IP or hostname, port) and quotes every argument. `connection_info`
+  remains for display. The client no longer decodes the connect response into a
+  string map, which failed on desktop instances' numeric `dcv_port`.
 - **Cross-site WebSocket hijacking closed.** The GUI's terminal server
   (`127.0.0.1:8948`, no other authentication) accepted WebSocket handshakes
   from any origin and hands out SSH sessions, so any web page the user visited

@@ -549,6 +549,15 @@ func (m *MockClient) GetInstanceHibernationStatus(ctx context.Context, name stri
 	}, nil
 }
 
+// GetSSHConnection returns a mock structured SSH endpoint for the instance
+func (m *MockClient) GetSSHConnection(ctx context.Context, name string) (*types.SSHConnection, error) {
+	instance, exists := m.Instances[name]
+	if !exists {
+		return nil, fmt.Errorf("instance %s not found", name)
+	}
+	return &types.SSHConnection{User: "ubuntu", Host: instance.PublicIP}, nil
+}
+
 // ConnectInstance returns mock connection information (deprecated, use GetInstance instead)
 func (m *MockClient) ConnectInstance(ctx context.Context, name string) (string, error) {
 	if instance, exists := m.Instances[name]; exists {

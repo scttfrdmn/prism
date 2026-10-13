@@ -44,6 +44,7 @@ type PrismAPI interface {
 	GetInstanceHibernationStatus(context.Context, string) (*types.HibernationStatus, error)
 	DeleteInstance(context.Context, string) error
 	ConnectInstance(context.Context, string) (string, error)
+	GetSSHConnection(context.Context, string) (*types.SSHConnection, error)
 	ExecInstance(context.Context, string, types.ExecRequest) (*types.ExecResult, error)
 	ResizeInstance(context.Context, types.ResizeRequest) (*types.ResizeResponse, error)
 
