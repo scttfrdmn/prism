@@ -42,8 +42,8 @@ github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.38.1 h1:7CvlUrbgDMnQa3OL
 github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.38.1/go.mod h1:5T5oAOfwOyP6UJJtHWoTWSHgOoUdrwgPAE8AHS6c9dI=
 github.com/aws/aws-sdk-go-v2/service/ebs v1.34.7 h1:8cSeObfW/xr+s2Hra2kArFisWz05pMrgIV/ZskUeYLw=
 github.com/aws/aws-sdk-go-v2/service/ebs v1.34.7/go.mod h1:u+YbhSelj9tbG7rWdjRbRnUi6izHK5hjZnxxA9dtCvQ=
-github.com/aws/aws-sdk-go-v2/service/ec2 v1.338.3 h1:9hhwIT0KJHiGpnx+LV+zRKNU3jqkkljBT9XXMIgbq70=
-github.com/aws/aws-sdk-go-v2/service/ec2 v1.338.3/go.mod h1:XBOdxGUyamy4dTWjC6LvHaexFxOLHzZO6WEMUXwXHHo=
+github.com/aws/aws-sdk-go-v2/service/ec2 v1.339.0 h1:QeML374NiRru1tMjY46LznOzY7VMbWstpnhrFPgscvM=
+github.com/aws/aws-sdk-go-v2/service/ec2 v1.339.0/go.mod h1:RttUwBa++DWLLpzTAQdcQzqI9uBF9cfRI/ek8gXzLR4=
 github.com/aws/aws-sdk-go-v2/service/efs v1.49.3 h1:qpR2hD/cqw1TR0ducB7EoN1yQ2XI2NLFdzeUX9VZuKw=
 github.com/aws/aws-sdk-go-v2/service/efs v1.49.3/go.mod h1:61vo8V2WJYvj0lSvBglRdfidJ4xLVh/3m2QFv85Tyv0=
 github.com/aws/aws-sdk-go-v2/service/fsx v1.74.3 h1:FmV2h0gjZ9WaKamTsojx70YJzBK/TYPiSuxtHmbvHxM=
@@ -68,8 +68,8 @@ github.com/aws/aws-sdk-go-v2/service/kms v1.51.1 h1:zuSf4olLKZW8cF/W9Y5wvGT+/0ra
 github.com/aws/aws-sdk-go-v2/service/kms v1.51.1/go.mod h1:Y0+uxvxz6ib4KktRdK0V4X45Vcs/JyYoz8H71pO8xeI=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.90.1 h1:odCeJgHXfQoXEWQUIzPkKvsJTWcLMsaOWowNpovPFFw=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.90.1/go.mod h1:NbtJVztitG7JkuoI4GSrDUlsB32zeXqKBvXj6bUxcMo=
-github.com/aws/aws-sdk-go-v2/service/organizations v1.61.2 h1:OqK9mO1ZuO45o0MMUMA/5xHC4daTGe+ZkqzBo7+EVlM=
-github.com/aws/aws-sdk-go-v2/service/organizations v1.61.2/go.mod h1:+6CfFbHrt1LtstQlUsbMCxXEXdGPKDVXaniTs1Xvdrk=
+github.com/aws/aws-sdk-go-v2/service/organizations v1.62.0 h1:19W7XenMo90w9jfAqOfBsElyzoxVGjDzq2r1Hbfii1Y=
+github.com/aws/aws-sdk-go-v2/service/organizations v1.62.0/go.mod h1:qUWXIO5ujCCGMeM+snLVkHj5tL7BQx2cLM3C6MGzQPY=
 github.com/aws/aws-sdk-go-v2/service/pricing v1.43.0 h1:hcoV2glaN+puMGz888vv+slu9mBT3BBAn6I6ZsiMcDg=
 github.com/aws/aws-sdk-go-v2/service/pricing v1.43.0/go.mod h1:fX2p8/1nehWSKdUTLWSp/gPCxOUSCaBk2r2wjDoyxf4=
 github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.33.3 h1:cbpUm/70ixkgEnoSjn0QlEr2h0sRxPePELoF2DnQWHc=
