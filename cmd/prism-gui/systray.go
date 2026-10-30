@@ -39,15 +39,10 @@ func (stm *SystemTrayManager) Setup() error {
 	// Create system tray (API changed in Wails v3 alpha.60)
 	stm.tray = stm.app.SystemTray.New()
 
-	// Set tray icon
-	if err := stm.tray.SetIcon(trayIconData); err != nil {
-		log.Printf("⚠️  Failed to set tray icon: %v", err)
-	}
-
-	// Set dark mode icon
-	if err := stm.tray.SetDarkModeIcon(trayIconDarkData); err != nil {
-		log.Printf("⚠️  Failed to set dark mode tray icon: %v", err)
-	}
+	// Set the tray icons. SetIcon/SetDarkModeIcon return the tray for chaining,
+	// not an error: treating that non-nil pointer as one logged a bogus
+	// "Failed to set tray icon" with the whole icon dumped on every launch.
+	stm.tray.SetIcon(trayIconData).SetDarkModeIcon(trayIconDarkData)
 
 	// Set tooltip
 	stm.tray.SetTooltip("Prism - Cloud Workstations")

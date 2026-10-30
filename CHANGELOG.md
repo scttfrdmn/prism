@@ -16,10 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (#750)
 
 ### Changed
+- **Wails v3 is on the stable release:** `cmd/prism-gui` moves from
+  `v3.0.0-alpha.102` to **`v3.0.0`**, with no API changes needed. WebView2 is
+  now vendored inside Wails, so `wailsapp/wails/webview2` and its Windows
+  helpers drop out of `go.mod`. Verified on macOS: the GUI builds through
+  `make build-gui` with the matching `wails3` v3.0.0 CLI, starts the daemon,
+  sets up the system tray, and renders the React UI. (#751)
 - **Dependencies:** AWS SDK for Go v2 group and `go-chi/chi/v5` 5.4.0, applied
   to both Go modules (replaces #748, #749). (#750)
 
 ### Fixed
+- The GUI no longer logs a bogus "Failed to set tray icon" (with the icon's
+  bytes dumped) on every launch: `SystemTray.SetIcon` returns the tray for
+  chaining, not an error. (#751)
 - `make lint` passes with staticcheck 2026.2.2 and golangci-lint 2.15.0: three
   `//lint:ignore SA4023` directives the newer staticcheck no longer needs are
   removed, and errors received from channels are now checked (the SSH proxy
