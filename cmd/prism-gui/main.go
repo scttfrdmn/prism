@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"syscall"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -109,10 +108,8 @@ func startDaemon() error {
 	cmd.Stderr = nil
 	cmd.Stdin = nil
 
-	// Set process group so daemon isn't killed when GUI exits
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true, // Create new process group
-	}
+	// Own process group, so the daemon isn't killed when the GUI exits (per-OS: detach_*.go)
+	detachProcess(cmd)
 
 	// Start daemon in background
 	if err := cmd.Start(); err != nil {

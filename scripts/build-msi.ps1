@@ -239,25 +239,23 @@ function Build-GoBinaries {
         if ($LASTEXITCODE -ne 0) { throw "Failed to build service wrapper" }
         Write-Success "Service wrapper built successfully"
         
-        # Build GUI binary (best effort)
+        # Build GUI binary. It's required: an MSI without it must fail rather than ship a
+        # placeholder (it used to copy cmd.exe in as prism-gui.exe, #754).
+        # cmd/prism-gui is its own Go module and embeds frontend/dist, so build the
+        # frontend first and run go in that module's directory.
+        Write-Task "Building GUI frontend..."
+        $frontendDir = Join-Path $ProjectRoot "cmd\prism-gui\frontend"
+        & npm --prefix $frontendDir ci
+        if ($LASTEXITCODE -ne 0) { throw "Failed to install GUI frontend dependencies" }
+        & npm --prefix $frontendDir run build
+        if ($LASTEXITCODE -ne 0) { throw "Failed to build GUI frontend" }
+
         Write-Task "Building GUI binary (prism-gui.exe)..."
         $guiPath = Join-Path $ReleaseDir "windows-amd64\prism-gui.exe"
-        $env:CGO_ENABLED = "1"
-
-        & go build -ldflags $ldflags -o $guiPath ./cmd/prism-gui 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "GUI binary built successfully"
-        } else {
-            Write-Warning "GUI binary build failed (creating placeholder)"
-            # Create a simple placeholder
-            @"
-@echo off
-echo Prism GUI not available in this build
-echo Use 'prism tui' for terminal interface
-pause
-"@ | Out-File -FilePath ($guiPath + ".bat") -Encoding ASCII
-            Copy-Item "$env:SystemRoot\System32\cmd.exe" $guiPath
-        }
+        # Wails v3 on Windows needs no cgo; -H windowsgui stops a console window opening with it
+        & go -C (Join-Path $ProjectRoot "cmd\prism-gui") build -ldflags "$ldflags -H windowsgui" -o $guiPath .
+        if ($LASTEXITCODE -ne 0) { throw "Failed to build GUI binary" }
+        Write-Success "GUI binary built successfully"
         
     } finally {
         Set-Location $originalLocation

@@ -180,7 +180,10 @@ create_app_bundle() {
     mkdir -p "$macos_path" "$resources_path" "$frameworks_path"
     
     # Copy binaries
-    cp "$PROJECT_ROOT/bin/prism" "$macos_path/"
+    # The CLI is bundled as prism-cli: the launcher below is MacOS/Prism, and on a
+    # case-insensitive file system (the macOS default) a CLI named "prism" was overwritten
+    # by it, so the DMG shipped without its CLI (#754).
+    cp "$PROJECT_ROOT/bin/prism" "$macos_path/prism-cli"
     cp "$PROJECT_ROOT/bin/prismd" "$macos_path/"
     if [[ "$DEV_BUILD" == false ]]; then
         cp "$PROJECT_ROOT/bin/prism-gui" "$macos_path/"
@@ -624,12 +627,12 @@ EOD
         fi
         
         # Install with sudo
-        sudo cp "$MACOS_DIR/prism" "$INSTALL_DIR/"
+        sudo cp "$MACOS_DIR/prism-cli" "$INSTALL_DIR/prism"
         sudo cp "$MACOS_DIR/prismd" "$INSTALL_DIR/"
         sudo chmod +x "$INSTALL_DIR/prism" "$INSTALL_DIR/prismd"
     else
         # Install without sudo
-        cp "$MACOS_DIR/prism" "$INSTALL_DIR/"
+        cp "$MACOS_DIR/prism-cli" "$INSTALL_DIR/prism"
         cp "$MACOS_DIR/prismd" "$INSTALL_DIR/"
         chmod +x "$INSTALL_DIR/prism" "$INSTALL_DIR/prismd"
     fi

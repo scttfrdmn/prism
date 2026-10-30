@@ -69,7 +69,7 @@ check_cli_tools_installed() {
         local bundle_version
         
         installed_version=$("$INSTALL_DIR/prism" --version 2>/dev/null | grep -o "v[0-9]\+\.[0-9]\+\.[0-9]\+" || echo "unknown")
-        bundle_version=$("$MACOS_DIR/prism" --version 2>/dev/null | grep -o "v[0-9]\+\.[0-9]\+\.[0-9]\+" || echo "unknown")
+        bundle_version=$("$MACOS_DIR/prism-cli" --version 2>/dev/null | grep -o "v[0-9]\+\.[0-9]\+\.[0-9]\+" || echo "unknown")
         
         if [[ "$installed_version" == "$bundle_version" ]] && [[ "$installed_version" != "unknown" ]]; then
             return 0  # Same version already installed
@@ -110,7 +110,7 @@ EOD
             password=$(echo "$password_result" | sed 's/.*text returned://; s/, button returned:.*//')
             
             # Install with sudo
-            if echo "$password" | sudo -S cp "$MACOS_DIR/prism" "$INSTALL_DIR/" 2>/dev/null && \
+            if echo "$password" | sudo -S cp "$MACOS_DIR/prism-cli" "$INSTALL_DIR/prism" 2>/dev/null && \
                echo "$password" | sudo -S cp "$MACOS_DIR/prismd" "$INSTALL_DIR/" 2>/dev/null && \
                echo "$password" | sudo -S chmod +x "$INSTALL_DIR/prism" "$INSTALL_DIR/prismd" 2>/dev/null; then
                 log_success "CLI tools installed to $INSTALL_DIR"
@@ -125,7 +125,7 @@ EOD
         fi
     else
         # Install without sudo
-        if cp "$MACOS_DIR/prism" "$INSTALL_DIR/" && \
+        if cp "$MACOS_DIR/prism-cli" "$INSTALL_DIR/prism" && \
            cp "$MACOS_DIR/prismd" "$INSTALL_DIR/" && \
            chmod +x "$INSTALL_DIR/prism" "$INSTALL_DIR/prismd"; then
             log_success "CLI tools installed to $INSTALL_DIR"
