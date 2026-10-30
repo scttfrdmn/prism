@@ -155,13 +155,11 @@ func (r *UniversalAMIResolver) tryInRegion(ctx context.Context, template *templa
 	}
 
 	// Tier 2: Dynamic AMI search
-	//lint:ignore SA4023 placeholder that always errors until implemented; keep the tier so templates configuring it fall through
 	if ami, err := r.tryDynamicSearch(ctx, template, region, result); err == nil { //nolint:staticcheck // SA4023: placeholder that always errors until implemented; keep the tier so templates configuring it fall through
 		return ami, types.ResolutionDynamicSearch, nil
 	}
 
 	// Tier 3: Marketplace search
-	//lint:ignore SA4023 placeholder that always errors until implemented; keep the tier so templates configuring it fall through
 	if ami, err := r.tryMarketplaceSearch(ctx, template, region, result); err == nil { //nolint:staticcheck // SA4023: placeholder that always errors until implemented; keep the tier so templates configuring it fall through
 		return ami, types.ResolutionMarketplace, nil
 	}
@@ -271,8 +269,7 @@ func (r *UniversalAMIResolver) tryCrossRegionSearch(ctx context.Context, templat
 		if ami, _, err := r.tryInRegion(ctx, template, sourceRegion, tempResult); err == nil {
 			// Found AMI in source region, initiate copy
 			copiedAMI, err := r.copyAMIToRegion(ctx, ami, sourceRegion, region) //nolint:staticcheck // SA4023: related info for the always-error placeholder tiers (see tryInRegion/cross-region fallback)
-			//lint:ignore SA4023 placeholder that always errors until implemented; keep the tier so templates configuring it fall through
-			if err == nil { //nolint:staticcheck // SA4023: placeholder that always errors until implemented; keep the tier so templates configuring it fall through
+			if err == nil {                                                     //nolint:staticcheck // SA4023: placeholder that always errors until implemented; keep the tier so templates configuring it fall through
 				result.SourceRegion = sourceRegion
 				result.Warning = fmt.Sprintf("AMI copied from %s (additional cost: $%.3f)", sourceRegion, r.estimateCopyICost(ami, sourceRegion, region))
 				return copiedAMI, nil

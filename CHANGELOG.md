@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Go 1.26.10**, clearing GO-2026-6809 in
+  `crypto/x509`; **vite 7.3.7** (`launch-editor` command injection,
+  CVE-2026-112942; cross-origin script execution and `server.fs.allow`
+  bypass) and **zod 4.6.7** (unbounded collection validation, CVE-2023-54404)
+  in the GUI frontend. The weekly Security Scan had failed since 2026-10-26.
+  (#750)
+
+### Changed
+- **Dependencies:** AWS SDK for Go v2 group and `go-chi/chi/v5` 5.4.0, applied
+  to both Go modules (replaces #748, #749). (#750)
+
+### Fixed
+- `make lint` passes with staticcheck 2026.2.2 and golangci-lint 2.15.0: three
+  `//lint:ignore SA4023` directives the newer staticcheck no longer needs are
+  removed, and errors received from channels are now checked (the SSH proxy
+  logs why a session ended). (#750)
+
 ## [0.37.0] - 2026-10-13
 
 ### Added

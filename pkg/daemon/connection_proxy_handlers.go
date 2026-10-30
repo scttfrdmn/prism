@@ -2,8 +2,10 @@ package daemon
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -282,8 +284,11 @@ func (s *Server) runSSHProxyLoop(wsConn *websocket.Conn, sshStdin io.WriteCloser
 	// SSH stderr -> WebSocket
 	go s.forwardSSHToWebSocket(wsConn, sshStderr, done, "stderr")
 
-	// Wait for session to end
-	<-done
+	// Wait for session to end: the first forwarder to stop ends it (a closed
+	// browser tab or a finished shell are both normal, so the error is only logged)
+	if err := <-done; err != nil && !errors.Is(err, io.EOF) {
+		log.Printf("SSH proxy session ended: %v", err)
+	}
 	_ = session.Wait()
 }
 
