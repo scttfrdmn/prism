@@ -143,16 +143,17 @@ func (ctx *TestContext) StartDaemon() {
 			}()
 
 			select {
-			case <-done:
-				ctx.T.Log("Daemon stopped gracefully")
+			case err := <-done:
+				ctx.T.Logf("Daemon stopped gracefully (wait: %v)", err)
 			case <-time.After(5 * time.Second):
 				ctx.T.Log("Daemon shutdown timeout, forcing kill")
 				if err := cmd.Process.Kill(); err != nil {
 					ctx.T.Logf("Failed to kill daemon: %v", err)
 				}
 				// The goroutine above is already in cmd.Wait(); calling Wait again
-				// would race/fail, so wait for it to observe the exit instead.
-				<-done
+				// would race/fail, so wait for it to observe the exit instead. A
+				// killed process always reports an error here; it's only logged.
+				ctx.T.Logf("Daemon exited after kill: %v", <-done)
 			}
 
 			// Give OS time to release port and resources
