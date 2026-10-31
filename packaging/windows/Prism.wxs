@@ -282,8 +282,19 @@
          first-run onboarding. -->
 
     <!-- Launch Conditions -->
+    <!-- Windows Installer reports VersionNT=603 (Windows 8.1) on Windows 10/11 and current
+         Server releases for compatibility, so "VersionNT >= 1000" rejected every modern
+         system. Read the real build number instead: 18362 is Windows 10 version 1903. -->
+    <Property Id="WINDOWSBUILD">
+      <RegistrySearch Id="WindowsCurrentBuild"
+                      Root="HKLM"
+                      Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+                      Name="CurrentBuildNumber"
+                      Type="raw"
+                      Win64="yes" />
+    </Property>
     <Condition Message="Prism requires Windows 10 version 1903 or later.">
-      <![CDATA[Installed OR (VersionNT >= 1000)]]>
+      <![CDATA[Installed OR (WINDOWSBUILD >= 18362)]]>
     </Condition>
     
     <Condition Message="Prism requires a 64-bit operating system.">

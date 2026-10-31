@@ -35,7 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Windows version, 64-bit and administrator checks; `ServiceInstall`,
   `util:ServiceConfig` and `ServiceControl` handle the service; the GUI has its
   own onboarding. The service executable is now its component's key file; with
-  a folder key path, the service had no binary. The release workflow now
+  a folder key path, the service had no binary. The Windows version check used
+  `VersionNT >= 1000`, but Windows Installer reports `VersionNT=603` on Windows
+  10/11, so it rejected every modern system. It now reads the build number
+  from the registry (≥ 18362, Windows 10 1903). The release workflow now
   installs and uninstalls every MSI on the runner before publishing it. (#757)
 - **The release installers include the GUI (and the macOS CLI).** (#754)
   - **Windows MSI:** the GUI didn't compile for Windows (a Unix-only `Setpgid`
