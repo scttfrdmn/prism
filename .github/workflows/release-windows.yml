@@ -51,6 +51,37 @@ jobs:
         shell: pwsh
         run: pwsh scripts/build-msi.ps1 -Version ${{ steps.version.outputs.VERSION }}
 
+      # Install and uninstall the MSI for real before anything is published: building
+      # it says nothing about whether it installs (#757).
+      - name: Install and uninstall the MSI
+        shell: pwsh
+        run: |
+          $msi = (Get-ChildItem dist/windows/Prism-*.msi | Select-Object -First 1).FullName
+          $bin = Join-Path $env:ProgramFiles "Prism\bin"
+
+          $p = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /qn /norestart /l*v `"$PWD\msi-install.log`"" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content msi-install.log -Tail 120; throw "MSI install failed with exit code $($p.ExitCode)" }
+          foreach ($exe in "prism.exe", "prismd.exe", "prismd-service.exe", "prism-gui.exe") {
+            if (-not (Test-Path (Join-Path $bin $exe))) { throw "$exe was not installed to $bin" }
+          }
+          & (Join-Path $bin "prism.exe") --version
+          if ($LASTEXITCODE -ne 0) { throw "installed prism.exe --version failed" }
+          Get-Service PrismDaemon | Format-List Name, Status, StartType
+
+          $p = Start-Process msiexec.exe -ArgumentList "/x `"$msi`" /qn /norestart /l*v `"$PWD\msi-uninstall.log`"" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content msi-uninstall.log -Tail 120; throw "MSI uninstall failed with exit code $($p.ExitCode)" }
+          if (Test-Path (Join-Path $bin "prism.exe")) { throw "uninstall left $bin\prism.exe behind" }
+          if (Get-Service PrismDaemon -ErrorAction SilentlyContinue) { throw "uninstall left the PrismDaemon service behind" }
+          Write-Host "MSI installs, runs and uninstalls cleanly"
+
+      - name: Keep MSI install logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: msi-install-logs
+          path: msi-*.log
+          if-no-files-found: ignore
+
       - name: Upload to Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v3
