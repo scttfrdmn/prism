@@ -26,6 +26,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to both Go modules (replaces #748, #749). (#750)
 
 ### Fixed
+- **The Windows MSI installs.** Every CI-built MSI, v0.37.0 included, failed to
+  install with Windows Installer error 1723 (exit 1603). Its first step called
+  a "custom action" DLL that the release runner had replaced with an empty
+  placeholder because it had no MSBuild. Even when built, those C# actions
+  lacked WiX's `MakeSfxCA` wrapper. All four duplicated native features, so
+  they're removed (about 1,450 lines of C#). The launch conditions cover the
+  Windows version, 64-bit and administrator checks; `ServiceInstall`,
+  `util:ServiceConfig` and `ServiceControl` handle the service; the GUI has its
+  own onboarding. The service executable is now its component's key file; with
+  a folder key path, the service had no binary. The release workflow now
+  installs and uninstalls every MSI on the runner before publishing it. (#757)
 - **The release installers include the GUI (and the macOS CLI).** (#754)
   - **Windows MSI:** the GUI didn't compile for Windows (a Unix-only `Setpgid`
     when starting the daemon), and `build-msi.ps1` also built it from the wrong

@@ -63,9 +63,6 @@
       <File Id="CWSDDaemonExecutable" 
             Source="$(var.SourceDir)\windows-amd64\prismd.exe"
             Name="prismd.exe" />
-      <File Id="CWSServiceWrapper" 
-            Source="$(var.SourceDir)\windows-amd64\prismd-service.exe"
-            Name="prismd-service.exe" />
       <File Id="CWSGUIExecutable"
             Source="$(var.SourceDir)\windows-amd64\prism-gui.exe"
             Name="prism-gui.exe" />
@@ -79,8 +76,13 @@
     
     <!-- Windows Service Component -->
     <Component Id="ServiceComponent" Guid="{44444444-5555-6666-7777-888888888888}" Directory="BinFolder">
-      <!-- CreateFolder provides a valid KeyPath for this service-only component (fixes ICE18) -->
-      <CreateFolder />
+      <!-- ServiceInstall registers the component's key file as the service binary, so the
+           service executable must be this component's KeyPath (a folder key path left the
+           service without an executable). -->
+      <File Id="CWSServiceWrapper"
+            Source="$(var.SourceDir)\windows-amd64\prismd-service.exe"
+            KeyPath="yes"
+            Name="prismd-service.exe" />
       <ServiceInstall Id="CWSService"
                       DisplayName="Prism Daemon Service"
                       Name="PrismDaemon" 
@@ -273,47 +275,12 @@
       <ComponentRef Id="PowerShellComponent" />
     </Feature>
     
-    <!-- Custom Actions -->
-    <Binary Id="SetupCustomActions" SourceFile="$(var.SourceDir)\SetupCustomActions.dll" />
-    
-    <CustomAction Id="CheckPrerequisites" 
-                  BinaryKey="SetupCustomActions" 
-                  DllEntry="CheckSystemRequirements" 
-                  Execute="immediate" 
-                  Return="check" />
-    
-    <CustomAction Id="ConfigureService" 
-                  BinaryKey="SetupCustomActions" 
-                  DllEntry="ConfigureWindowsService" 
-                  Execute="deferred" 
-                  Impersonate="no" 
-                  Return="check" />
-    
-    <CustomAction Id="FirstRunSetup"
-                  BinaryKey="SetupCustomActions"
-                  DllEntry="LaunchFirstRunWizard"
-                  Execute="immediate"
-                  Return="ignore" />
-    
-    <CustomAction Id="CheckDaemonHealth"
-                  BinaryKey="SetupCustomActions"
-                  DllEntry="VerifyDaemonStartup"
-                  Execute="immediate"
-                  Return="check" />
-    
-    <!-- Installation Sequence -->
-    <InstallExecuteSequence>
-      <Custom Action="CheckPrerequisites" Before="LaunchConditions">NOT Installed</Custom>
-      <Custom Action="ConfigureService" After="StartServices">&amp;ServiceFeature=3</Custom>
-      <Custom Action="CheckDaemonHealth" After="ConfigureService">&amp;ServiceFeature=3</Custom>
-      <Custom Action="FirstRunSetup" After="InstallFinalize">NOT Installed AND UILevel &lt;&gt; 2</Custom>
-    </InstallExecuteSequence>
-    
-    <!-- UI Sequence -->
-    <InstallUISequence>
-      <Custom Action="CheckPrerequisites" After="LaunchConditions">NOT Installed</Custom>
-    </InstallUISequence>
-    
+    <!-- No DLL custom actions (#757): the launch conditions below cover the Windows
+         version, 64-bit and administrator checks, Windows Installer checks disk space,
+         ServiceInstall/util:ServiceConfig set the service description and recovery, and
+         ServiceControl Wait="yes" waits for the service to start. The GUI runs its own
+         first-run onboarding. -->
+
     <!-- Launch Conditions -->
     <Condition Message="Prism requires Windows 10 version 1903 or later.">
       <![CDATA[Installed OR (VersionNT >= 1000)]]>
