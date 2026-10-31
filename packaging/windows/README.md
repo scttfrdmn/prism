@@ -35,7 +35,7 @@ Professional Windows installer for Prism using WiX Toolset, providing enterprise
 - **.NET Framework 4.8 SDK** - For custom actions DLL
 
 ### **Installation Requirements**
-- **Windows 10 version 1903+** or **Windows 11**
+- **Windows 11** or later (Windows Server 2025 also qualifies)
 - **64-bit architecture** (x64)
 - **Administrator privileges** (for installation)
 - **100MB+ disk space** (plus space for templates and data)
@@ -55,10 +55,7 @@ Professional Windows installer for Prism using WiX Toolset, providing enterprise
 
 2. **Build from PowerShell**:
    ```powershell
-   # Development build (faster)
-   .\scripts\build-msi.ps1 -SkipCustomActions
-   
-   # Full production build
+   # Production build
    .\scripts\build-msi.ps1 -Version 0.4.3
    
    # Build with signing
@@ -107,13 +104,6 @@ Professional Windows installer for Prism using WiX Toolset, providing enterprise
 packaging/windows/
 ├── Prism.wxs           # Main WiX installer definition
 ├── strings_en-us.wxl             # Localization strings
-├── SetupCustomActions/           # Custom actions DLL project
-│   ├── SetupCustomActions.csproj # C# project file
-│   ├── CustomActions.cs          # Main custom actions
-│   ├── SystemChecker.cs          # System requirement checks
-│   ├── ServiceManager.cs         # Windows service management
-│   ├── FirstRunSetup.cs          # Post-installation setup
-│   └── packages.config           # NuGet dependencies
 └── README.md                     # This documentation
 
 scripts/
@@ -185,26 +175,14 @@ msiexec /a Prism.msi TARGETDIR="\\server\share\Prism"
 
 ## 🛠️ Development Guide
 
-### **Building Custom Actions**
+### **No Custom Actions**
 
-1. **Prerequisites**:
-   ```powershell
-   # Install .NET Framework 4.8 SDK
-   # Install NuGet packages
-   nuget restore packaging/windows/SetupCustomActions/packages.config
-   ```
-
-2. **Build DLL**:
-   ```powershell
-   msbuild packaging/windows/SetupCustomActions/SetupCustomActions.csproj /p:Configuration=Release /p:Platform=x64
-   ```
-
-3. **Available Custom Actions**:
-   - `CheckSystemRequirements` - Validates system compatibility
-   - `ConfigureWindowsService` - Sets up service recovery options
-   - `VerifyDaemonStartup` - Tests daemon connectivity
-   - `LaunchFirstRunWizard` - Post-installation setup
-   - `UpdateSystemPath` - Adds binaries to PATH
+The installer uses only native Windows Installer and WiX features (#757): launch
+conditions for the Windows version, 64-bit and administrator checks; Windows
+Installer's own disk-space check; `ServiceInstall` and `util:ServiceConfig` for the
+service and its recovery options; and `ServiceControl Wait="yes"` to wait for the
+service to start. The GUI runs its own first-run onboarding. The release workflow
+installs and uninstalls every MSI it builds before publishing it.
 
 ### **Modifying the Installer**
 
@@ -218,11 +196,6 @@ msiexec /a Prism.msi TARGETDIR="\\server\share\Prism"
    - Update dialog text
    - Change feature descriptions
    - Modify installation messages
-
-3. **Extend Custom Actions** (`SetupCustomActions/`):
-   - Add new system checks
-   - Implement additional setup steps
-   - Enhance service configuration
 
 ### **Testing the Installer**
 
@@ -290,14 +263,6 @@ $env:PATH += ";${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin"
 # Ensure .NET Framework 4.8 SDK installed
 ```
 
-**Custom Actions Build Failed**:
-```powershell
-# Check NuGet packages
-nuget restore packaging/windows/SetupCustomActions/packages.config
-
-# Verify project references
-# Check .NET Framework version
-```
 
 ### **Installation Issues**
 
@@ -359,7 +324,6 @@ $env:PATH += ";C:\Program Files\Prism\bin"
 ### **Documentation**
 - [WiX Toolset Documentation](https://wixtoolset.org/documentation/)
 - [Windows Installer Reference](https://docs.microsoft.com/en-us/windows/win32/msi/)
-- [MSBuild Reference](https://docs.microsoft.com/en-us/visualstudio/msbuild/)
 
 ### **Tools**
 - [WiX Toolset](https://wixtoolset.org/) - MSI creation
@@ -375,7 +339,7 @@ $env:PATH += ";C:\Program Files\Prism\bin"
 
 A successful Prism Windows installer should:
 
-✅ **Install cleanly** on Windows 10/11 systems  
+✅ **Install cleanly** on Windows 11 systems  
 ✅ **Start Windows service** automatically after installation  
 ✅ **Add CLI to PATH** for command-line access  
 ✅ **Create Start Menu shortcuts** for easy access  

@@ -46,17 +46,6 @@ if !errorlevel! neq 0 (
 
 echo %GREEN%✓ WiX Toolset found%RESET%
 
-REM Check for Visual Studio Build Tools (for custom actions DLL)
-echo %BLUE%Checking for MSBuild...%RESET%
-where msbuild >nul 2>&1
-if !errorlevel! neq 0 (
-    echo %YELLOW%Warning: MSBuild not found - custom actions will be skipped%RESET%
-    set SKIP_CUSTOM_ACTIONS=1
-) else (
-    echo %GREEN%✓ MSBuild found%RESET%
-    set SKIP_CUSTOM_ACTIONS=0
-)
-
 REM Create build directories
 echo %BLUE%Creating build directories...%RESET%
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
@@ -158,32 +147,7 @@ if not exist "%SOURCE_DIR%\assets\prism.ico" (
 )
 echo %GREEN%✓ Application icon prepared%RESET%
 
-REM Step 3: Build Custom Actions DLL (if MSBuild available)
-if !SKIP_CUSTOM_ACTIONS! equ 0 (
-    echo.
-    echo %CYAN%Step 3: Building Custom Actions DLL...%RESET%
-    
-    REM Check if custom actions project exists
-    if exist "%WIX_DIR%\SetupCustomActions\SetupCustomActions.csproj" (
-        echo %BLUE%Building SetupCustomActions.dll...%RESET%
-        msbuild "%WIX_DIR%\SetupCustomActions\SetupCustomActions.csproj" /p:Configuration=Release /p:Platform=x64 /p:OutputPath="%BUILD_DIR%\release\" /nologo /verbosity:minimal
-        if !errorlevel! equ 0 (
-            echo %GREEN%✓ Custom Actions DLL built successfully%RESET%
-        ) else (
-            echo %YELLOW%⚠ Custom Actions DLL build failed, continuing without custom actions%RESET%
-            set SKIP_CUSTOM_ACTIONS=1
-        )
-    ) else (
-        echo %YELLOW%⚠ Custom Actions project not found, creating placeholder%RESET%
-        echo. > "%BUILD_DIR%\release\SetupCustomActions.dll"
-        set SKIP_CUSTOM_ACTIONS=1
-    )
-) else (
-    echo.
-    echo %CYAN%Step 3: Skipping Custom Actions DLL (MSBuild not available)%RESET%
-    echo. > "%BUILD_DIR%\release\SetupCustomActions.dll"
-)
-
+REM Step 3: (no custom actions DLL: the MSI uses native WiX features, #757)
 REM Step 4: Compile WiX Source
 echo.
 echo %CYAN%Step 4: Compiling WiX source...%RESET%

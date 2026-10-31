@@ -4,7 +4,6 @@
 param(
     [string]$Version = "",
     [switch]$SkipBuild,
-    [switch]$SkipCustomActions,
     [switch]$Verbose,
     [switch]$Clean
 )
@@ -103,8 +102,6 @@ function Build-MSI {
         # Step 3: Prepare supporting files
         Prepare-SupportingFiles
         
-        # Step 4: Build custom actions DLL (always run — creates placeholder when MSBuild absent)
-        Build-CustomActions
         
         # Step 5: Compile WiX source
         Compile-WixSource
@@ -151,14 +148,6 @@ function Test-BuildEnvironment {
     }
     
     Write-Success "Go toolchain found"
-    
-    # Check for MSBuild (for custom actions)
-    if (-not (Get-Command "msbuild" -ErrorAction SilentlyContinue)) {
-        Write-Warning "MSBuild not found - custom actions will be skipped"
-        $script:SkipCustomActions = $true
-    } else {
-        Write-Success "MSBuild found"
-    }
     
     Write-Host
 }
@@ -347,36 +336,6 @@ Export-ModuleMember -Function Get-Prism
             $icoBytes = [byte[]](0,0,1,0,1,0,1,1,0,0,1,0,32,0,40,0,0,0,22,0,0,0,40,0,0,0,1,0,0,0,2,0,0,0,1,0,32,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,37,99,235,255,0,0,0,0)
             [System.IO.File]::WriteAllBytes($iconTarget, $icoBytes)
         }
-    }
-    
-    Write-Host
-}
-
-function Build-CustomActions {
-    Write-Step "Building Custom Actions DLL"
-
-    $customActionsProject = Join-Path $WixDir "SetupCustomActions\SetupCustomActions.csproj"
-    $customActionsDll = Join-Path $ReleaseDir "SetupCustomActions.dll"
-
-    if (-not (Get-Command "msbuild" -ErrorAction SilentlyContinue)) {
-        Write-Warning "MSBuild not found - creating placeholder DLL for WiX compilation"
-        New-Item -ItemType File -Path $customActionsDll -Force | Out-Null
-        $script:SkipCustomActions = $true
-    } elseif (Test-Path $customActionsProject) {
-        Write-Task "Building SetupCustomActions.dll..."
-
-        & msbuild $customActionsProject /p:Configuration=Release /p:Platform=x64 /p:OutputPath=$ReleaseDir /nologo /verbosity:minimal
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "Custom Actions DLL built successfully"
-        } else {
-            Write-Warning "Custom Actions DLL build failed, continuing without custom actions"
-            New-Item -ItemType File -Path $customActionsDll -Force | Out-Null
-            $script:SkipCustomActions = $true
-        }
-    } else {
-        Write-Warning "Custom Actions project not found, creating placeholder"
-        New-Item -ItemType File -Path $customActionsDll -Force | Out-Null
-        $script:SkipCustomActions = $true
     }
     
     Write-Host
