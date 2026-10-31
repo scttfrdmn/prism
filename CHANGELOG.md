@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (#750)
 
 ### Changed
+- **The Windows installer requires Windows 11** (build 22000 or later; Windows
+  Server 2025 also qualifies). (#757)
 - **Wails v3 is on the stable release:** `cmd/prism-gui` moves from
   `v3.0.0-alpha.102` to **`v3.0.0`**, with no API changes needed. WebView2 is
   now vendored inside Wails, so `wailsapp/wails/webview2` and its Windows
@@ -38,7 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a folder key path, the service had no binary. The Windows version check used
   `VersionNT >= 1000`, but Windows Installer reports `VersionNT=603` on Windows
   10/11, so it rejected every modern system. It now reads the build number
-  from the registry (≥ 18362, Windows 10 1903). The release workflow now
+  from the registry. The service then failed to start (error 1920) for four
+  reasons, all fixed in `prismd-service`:
+  - it rejected the `--service` argument the MSI starts it with;
+  - it exited if its Event Log source wasn't registered (it now registers it,
+    or logs to the console);
+  - it passed `prismd` a `--service` flag that `prismd` doesn't define;
+  - it used the deprecated `svc.IsAnInteractiveSession`, which can misdetect
+    a service (it now uses `svc.IsWindowsService`). The release workflow now
   installs and uninstalls every MSI on the runner before publishing it. (#757)
 - **The release installers include the GUI (and the macOS CLI).** (#754)
   - **Windows MSI:** the GUI didn't compile for Windows (a Unix-only `Setpgid`

@@ -27,7 +27,7 @@ const (
 
 // PrismService implements the Windows service interface
 type PrismService struct {
-	elog   *eventlog.Log
+	elog   debug.Log // the Windows Event Log, or the console if it can't be opened
 	ctx    context.Context
 	cancel context.CancelFunc
 }
@@ -37,13 +37,11 @@ func (ps *PrismService) Execute(args []string, r <-chan svc.ChangeRequest, chang
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown | svc.AcceptPauseAndContinue
 	changes <- svc.Status{State: svc.StartPending}
 
-	// Initialize event log
-	elog, err := eventlog.Open(serviceName)
-	if err != nil {
-		log.Printf("Failed to open event log: %v", err)
-		return
-	}
-	defer elog.Close()
+	// Initialize event log. Its source is registered by "prismd-service install" but not by
+	// the MSI's ServiceInstall, so register it if needed, and fall back to the console rather
+	// than exit before reporting Running (which failed the MSI install with error 1920, #757).
+	elog := openServiceLog()
+	defer func() { _ = elog.Close() }() // nothing to do if closing the log fails
 	ps.elog = elog
 
 	elog.Info(1, fmt.Sprintf("%s service starting", displayName))
@@ -123,6 +121,22 @@ func (ps *PrismService) Execute(args []string, r <-chan svc.ChangeRequest, chang
 	}
 }
 
+// openServiceLog opens the service's Event Log source, registering it first if it doesn't exist
+// yet, and falls back to a console logger if the Event Log can't be used.
+func openServiceLog() debug.Log {
+	if elog, err := eventlog.Open(serviceName); err == nil {
+		return elog
+	}
+	if err := eventlog.InstallAsEventCreate(serviceName, eventlog.Error|eventlog.Warning|eventlog.Info); err != nil {
+		log.Printf("Failed to register event log source: %v", err)
+	}
+	if elog, err := eventlog.Open(serviceName); err == nil {
+		return elog
+	}
+	log.Printf("Event log unavailable; logging to the console")
+	return debug.New(serviceName)
+}
+
 // startDaemon locates and starts the prismd daemon process
 func (ps *PrismService) startDaemon() (*exec.Cmd, error) {
 	// Get current executable directory
@@ -140,7 +154,9 @@ func (ps *PrismService) startDaemon() (*exec.Cmd, error) {
 	}
 
 	// Create daemon command
-	cmd := exec.CommandContext(ps.ctx, daemonPath, "--service")
+	// No "--service" argument: prismd defines no such flag (flag.Parse exited on it); the
+	// environment below (PRISM_SERVICE_MODE) tells it it's running under the service.
+	cmd := exec.CommandContext(ps.ctx, daemonPath)
 	cmd.Dir = binDir
 
 	// Set up service environment variables
@@ -197,15 +213,17 @@ func runService() error {
 		return fmt.Errorf("failed to create log directory: %w", err)
 	}
 
-	// Determine if running in service mode or debug mode
-	isInteractive, err := svc.IsAnInteractiveSession()
+	// Determine if running under the Service Control Manager. The deprecated
+	// IsAnInteractiveSession can misreport on current Windows, which ran the service
+	// through debug.Run, so it never reported Running to the SCM (#757).
+	isService, err := svc.IsWindowsService()
 	if err != nil {
 		return fmt.Errorf("failed to determine session type: %w", err)
 	}
 
 	var run svc.Handler = &PrismService{}
 
-	if isInteractive {
+	if !isService {
 		// Running in debug/console mode
 		log.Println("Prism Service running in console mode (for debugging)")
 		return debug.Run(serviceName, run)
@@ -475,8 +493,9 @@ func showUsage() {
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		// No arguments provided - run as service
+	// No arguments, or "--service" (how the MSI's ServiceInstall starts it): run as the
+	// service. "--service" used to fall through to an unknown-command exit (#757).
+	if len(os.Args) < 2 || os.Args[1] == "--service" {
 		if err := runService(); err != nil {
 			log.Fatalf("Service run failed: %v", err)
 		}

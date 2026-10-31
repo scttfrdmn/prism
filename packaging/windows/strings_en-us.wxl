@@ -106,7 +106,7 @@ https://github.com/scttfrdmn/prism</String>
   <String Id="InformationDlgTitle">Information</String>
   
   <String Id="InsufficientPrivilegesError">Prism requires administrator privileges for installation. Please run the installer as administrator.</String>
-  <String Id="UnsupportedOSError">Prism requires Windows 10 version 1903 or later.</String>
+  <String Id="UnsupportedOSError">Prism requires Windows 11 or later.</String>
   <String Id="InsufficientDiskSpaceError">Insufficient disk space for installation. Please free up disk space and try again.</String>
   <String Id="ServiceInstallationWarning">The Prism service could not be configured properly. You may need to start the service manually after installation.</String>
   

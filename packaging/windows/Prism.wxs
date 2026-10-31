@@ -284,7 +284,8 @@
     <!-- Launch Conditions -->
     <!-- Windows Installer reports VersionNT=603 (Windows 8.1) on Windows 10/11 and current
          Server releases for compatibility, so "VersionNT >= 1000" rejected every modern
-         system. Read the real build number instead: 18362 is Windows 10 version 1903. -->
+         system. Read the real build number instead: 22000 is Windows 11 (Server 2025 is
+         26100, so the Windows 11-generation server passes too). -->
     <Property Id="WINDOWSBUILD">
       <RegistrySearch Id="WindowsCurrentBuild"
                       Root="HKLM"
@@ -293,8 +294,8 @@
                       Type="raw"
                       Win64="yes" />
     </Property>
-    <Condition Message="Prism requires Windows 10 version 1903 or later.">
-      <![CDATA[Installed OR (WINDOWSBUILD >= 18362)]]>
+    <Condition Message="Prism requires Windows 11 or later.">
+      <![CDATA[Installed OR (WINDOWSBUILD >= 22000)]]>
     </Condition>
     
     <Condition Message="Prism requires a 64-bit operating system.">

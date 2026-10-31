@@ -35,7 +35,7 @@ Professional Windows installer for Prism using WiX Toolset, providing enterprise
 - **.NET Framework 4.8 SDK** - For custom actions DLL
 
 ### **Installation Requirements**
-- **Windows 10 version 1903+** or **Windows 11**
+- **Windows 11** or later (Windows Server 2025 also qualifies)
 - **64-bit architecture** (x64)
 - **Administrator privileges** (for installation)
 - **100MB+ disk space** (plus space for templates and data)
@@ -339,7 +339,7 @@ $env:PATH += ";C:\Program Files\Prism\bin"
 
 A successful Prism Windows installer should:
 
-✅ **Install cleanly** on Windows 10/11 systems  
+✅ **Install cleanly** on Windows 11 systems  
 ✅ **Start Windows service** automatically after installation  
 ✅ **Add CLI to PATH** for command-line access  
 ✅ **Create Start Menu shortcuts** for easy access  
