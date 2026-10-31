@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- **minimatch 11.0.3** in the GUI frontend's ESLint toolchain, via an npm
+  `overrides` entry (globparts denial-of-service advisory; no 3.x or 10.x
+  fix). ESLint's output is unchanged. Development-only; not in the shipped
+  bundle. (#760)
 - **Go 1.26.10**, clearing GO-2026-6809 in
   `crypto/x509`; **vite 7.3.7** (`launch-editor` command injection,
   CVE-2026-112942; cross-origin script execution and `server.fs.allow`
