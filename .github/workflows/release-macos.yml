@@ -26,7 +26,7 @@ jobs:
 
       - uses: actions/setup-go@v7
         with:
-          go-version: '1.26.10'
+          go-version: '1.27.3'
           cache: true
 
       # The GUI (Wails v3) needs Node for its frontend and the matching wails3 CLI.

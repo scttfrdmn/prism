@@ -133,13 +133,13 @@ func (r *DependencyResolver) resolveDependency(templateName string, dep Template
 
 	// Version doesn't satisfy constraint
 	return &ResolvedDependency{
-			Name:         dep.Name,
-			OriginalName: dep.Name,
-			Version:      metadata.Version,
-			IsOptional:   dep.Optional,
-			Status:       "version-mismatch",
-		}, fmt.Errorf("dependent template '%s' version %s doesn't satisfy constraint %s %s",
-			dep.Name, metadata.Version, dep.VersionOperator, dep.Version)
+		Name:         dep.Name,
+		OriginalName: dep.Name,
+		Version:      metadata.Version,
+		IsOptional:   dep.Optional,
+		Status:       "version-mismatch",
+	}, fmt.Errorf("dependent template '%s' version %s doesn't satisfy constraint %s %s",
+		dep.Name, metadata.Version, dep.VersionOperator, dep.Version)
 }
 
 // checkVersionConstraint checks if a version satisfies a constraint
