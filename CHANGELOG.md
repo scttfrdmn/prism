@@ -26,6 +26,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to both Go modules (replaces #748, #749). (#750)
 
 ### Fixed
+- **The release installers include the GUI (and the macOS CLI).** (#754)
+  - **Windows MSI:** the GUI didn't compile for Windows (a Unix-only `Setpgid`
+    when starting the daemon), and `build-msi.ps1` also built it from the wrong
+    module without its frontend. It hid the failure and **copied `cmd.exe` in
+    as `prism-gui.exe`**. The daemon now detaches with
+    `CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS` on Windows. The script builds
+    the frontend, then the GUI in its own module with `-H windowsgui`, and fails
+    the build instead of shipping a placeholder.
+  - **macOS DMG:** the release ran `build-dmg.sh --dev`, which leaves the GUI
+    out. It now installs the `wails3` v3.0.0 CLI and Node, and does a full
+    build. The bundle's CLI was also overwritten by the `Prism` launcher script
+    on case-insensitive file systems, so "Install command-line tools"
+    installed the launcher as `prism`; the CLI is now bundled as `prism-cli`
+    and installed as `prism`.
+  - **Checked on pull requests:** both installer workflows now also run on pull
+    requests that touch the installers, the release workflows or the GUI, so a
+    broken installer fails review instead of a release.
 - The GUI no longer logs a bogus "Failed to set tray icon" (with the icon's
   bytes dumped) on every launch: `SystemTray.SetIcon` returns the tray for
   chaining, not an error. (#751)
