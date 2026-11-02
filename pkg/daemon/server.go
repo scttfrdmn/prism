@@ -39,6 +39,9 @@ import (
 
 // Server represents the Prism daemon server
 type Server struct {
+	// clock returns the current time for budget status and analytics; nil means time.Now.
+	// Tests set it so calendar periods don't depend on the date the test runs.
+	clock              func() time.Time
 	config             *Config
 	port               string
 	httpServer         *http.Server
@@ -597,6 +600,14 @@ func wireSpendObserver(server *Server, config *Config, awsManager *aws.Manager, 
 			enforcer.Enforce(ctx)
 		}
 	})
+}
+
+// now returns the current time from the server's clock.
+func (s *Server) now() time.Time {
+	if s.clock != nil {
+		return s.clock()
+	}
+	return time.Now()
 }
 
 // NewServerForTesting creates a new daemon server with test mode enabled

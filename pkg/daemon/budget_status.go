@@ -46,7 +46,7 @@ func (s *Server) budgetStatus(ctx context.Context, projectID string) (*project.B
 	}
 
 	budget := proj.Budget
-	now := time.Now()
+	now := s.now()
 	spent := s.ledgerSpent(ctx, projectID, budget, now)
 
 	totalBudget := budget.TotalBudget
@@ -97,7 +97,7 @@ func (s *Server) budgetStatus(ctx context.Context, projectID string) (*project.B
 	// Phase 3d (#654): period-aware burn rate. Reuses the existing BurnRateCalculator (the same
 	// analytics the retired tracker fed).
 	if serr == nil && len(series) >= 2 {
-		calc := &project.BurnRateCalculator{}
+		calc := &project.BurnRateCalculator{Now: s.clock}
 		status.BurnRate = calc.ComputeBurnRate(series, budget.BudgetPeriod, budget.StartDate, allocation)
 	}
 
@@ -107,7 +107,7 @@ func (s *Server) budgetStatus(ctx context.Context, projectID string) (*project.B
 	// RolloverEnabled/RolloverCap fields and fills all five SurplusInfo fields from the real ledger
 	// series.
 	if serr == nil && budget.BudgetPeriod != "" && budget.BudgetPeriod != types.BudgetPeriodProject {
-		scalc := &project.SurplusCalculator{}
+		scalc := &project.SurplusCalculator{Now: s.clock}
 		status.Surplus = scalc.ComputeSurplusWithRollover(series, budget, allocation)
 	}
 

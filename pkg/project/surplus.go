@@ -21,12 +21,15 @@ type SurplusInfo struct {
 }
 
 // SurplusCalculator handles budget banking and carry-over across periods.
-type SurplusCalculator struct{}
+type SurplusCalculator struct {
+	// Now returns the current time; nil means time.Now (see BurnRateCalculator.Now).
+	Now func() time.Time
+}
 
 // PeriodSurplus returns the unspent amount in the given window relative to its allocation.
 // A negative value means the window was over-budget.
 func (s *SurplusCalculator) PeriodSurplus(history []CostDataPoint, window PeriodWindow, allocation float64) float64 {
-	calc := &BurnRateCalculator{}
+	calc := &BurnRateCalculator{Now: s.Now}
 	spent := calc.PeriodSpend(history, window)
 	return allocation - spent
 }
@@ -43,8 +46,8 @@ func (s *SurplusCalculator) BankedSurplus(
 		return 0 // project-lifetime budgets don't bank across periods
 	}
 
-	calc := &BurnRateCalculator{}
-	now := time.Now()
+	calc := &BurnRateCalculator{Now: s.Now}
+	now := calc.now()
 	var banked float64
 
 	// Walk through all completed periods from startDate to now.
@@ -97,7 +100,7 @@ func (s *SurplusCalculator) ComputeSurplus(
 	periodAllocation float64,
 	surplusCapPercent float64,
 ) *SurplusInfo {
-	calc := &BurnRateCalculator{}
+	calc := &BurnRateCalculator{Now: s.Now}
 	window := calc.CurrentPeriodWindow(period, startDate)
 	currentSurplus := s.PeriodSurplus(history, window, periodAllocation)
 

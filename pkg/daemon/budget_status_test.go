@@ -162,8 +162,13 @@ func TestBudgetStatus_SurplusForPeriodicBudget(t *testing.T) {
 	ctx := context.Background()
 	projID := seedBudgetedProject(t, s, 1000, 1000)
 
-	// Anchor StartDate to the first of the current month; enable rollover (unlimited cap).
-	now := time.Now().UTC()
+	// Pin the clock mid-month. The ledger series is bucketed by UTC day and the period is the
+	// calendar month, so with the real clock this failed on the 1st and 2nd: both seeded points
+	// fell on the same day, leaving nothing to difference.
+	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
+	s.clock = func() time.Time { return now }
+
+	// Anchor StartDate to the first of that month; enable rollover (unlimited cap).
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	proj, _ := s.projectManager.GetProject(ctx, projID)
 	proj.Budget.StartDate = monthStart
@@ -172,14 +177,12 @@ func TestBudgetStatus_SurplusForPeriodicBudget(t *testing.T) {
 		t.Fatalf("set budget: %v", err)
 	}
 
-	// Spend $200 at two points this month (need >=2 points for the series). The points sit within the
-	// elapsed part of the month — fixed day offsets land in the future on the 1st/2nd and get dropped.
-	elapsed := now.Sub(monthStart)
+	// Spend $200 on two different days this month (need >=2 points for the series).
 	_ = s.spendLedger.AppendSpend(ctx, projectScope(projID), be.SpendEvent{
-		ID: "e1", AllocationID: engineAllocationID, Amount: 120, At: monthStart.Add(elapsed / 3), Source: "estimate", ResourceID: "i-1", Compute: 120,
+		ID: "e1", AllocationID: engineAllocationID, Amount: 120, At: monthStart.Add(24 * time.Hour), Source: "estimate", ResourceID: "i-1", Compute: 120,
 	})
 	_ = s.spendLedger.AppendSpend(ctx, projectScope(projID), be.SpendEvent{
-		ID: "e2", AllocationID: engineAllocationID, Amount: 80, At: monthStart.Add(2 * elapsed / 3), Source: "estimate", ResourceID: "i-1", Compute: 80,
+		ID: "e2", AllocationID: engineAllocationID, Amount: 80, At: monthStart.Add(48 * time.Hour), Source: "estimate", ResourceID: "i-1", Compute: 80,
 	})
 
 	st, err := s.budgetStatus(ctx, projID)
