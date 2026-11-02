@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to both Go modules (replaces #748, #749). (#750)
 
 ### Fixed
+- **Budget rollover banks.** Banked surplus was always $0, so unspent budget never
+  carried over. Period spend also now counts each period's first day (it was
+  dropped, so daily budgets looked unspent) and uses UTC periods to match the
+  spend ledger. History is read back to the budget's start date. Nothing banks
+  when rollover is off, and a rollover cap of 0 is unlimited, as documented (#764)
 - A budget-status test failed on the 1st and 2nd of every month because it used the
   real clock against calendar-month periods; budget calculations now take an
   injectable clock and the test pins one (#763)

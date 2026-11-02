@@ -1,6 +1,7 @@
 package project
 
 import (
+	"sort"
 	"testing"
 	"time"
 
@@ -120,4 +121,129 @@ func TestComputeSurplusWithRollover_NegativeSurplus(t *testing.T) {
 	assert.LessOrEqual(t, info.CurrentPeriodSurplus, 0.0, "surplus should be non-positive when over budget")
 	// BankedSurplus from completed periods: StartDate=now → no completed periods.
 	assert.Equal(t, 0.0, info.BankedSurplus)
+}
+
+// series builds a cumulative day-bucketed history, as the daemon's ledger series does:
+// one point per day at UTC midnight, DailyCost that day's spend, TotalCost the running total.
+func series(days map[string]float64) []CostDataPoint {
+	keys := make([]string, 0, len(days))
+	for k := range days {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var out []CostDataPoint
+	var total float64
+	for _, k := range keys {
+		day, _ := time.Parse("2006-01-02", k)
+		total += days[k]
+		out = append(out, CostDataPoint{Timestamp: day, TotalCost: total, DailyCost: days[k]})
+	}
+	return out
+}
+
+func fixedClock(t time.Time) func() time.Time { return func() time.Time { return t } }
+
+// TestBankedSurplus_Monthly (#764): completed months bank their unspent allocation; the current
+// month doesn't. A month's first day counts toward its spend.
+func TestBankedSurplus_Monthly(t *testing.T) {
+	calc := &SurplusCalculator{Now: fixedClock(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))}
+	history := series(map[string]float64{
+		"2026-05-01": 300, // first day of May
+		"2026-05-31": 100,
+		"2026-06-01": 1000, // all of June's allocation, on its first day
+		"2026-07-02": 50,
+	})
+	start := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	// May: 1000 − 400 = 600; June: 1000 − 1000 = 0; July is in progress.
+	assert.InDelta(t, 600, calc.BankedSurplus(history, types.BudgetPeriodMonthly, start, 1000), 1e-9)
+}
+
+// TestBankedSurplus_Daily: with one history point per day, a fully spent day banks nothing
+// (the first-point baseline used to make every day look unspent).
+func TestBankedSurplus_Daily(t *testing.T) {
+	calc := &SurplusCalculator{Now: fixedClock(time.Date(2026, 7, 4, 12, 0, 0, 0, time.UTC))}
+	history := series(map[string]float64{
+		"2026-07-01": 10,
+		"2026-07-02": 4,
+		"2026-07-03": 10,
+	})
+	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+
+	// July 1: 0, July 2: 6, July 3: 0; July 4 is in progress.
+	assert.InDelta(t, 6, calc.BankedSurplus(history, types.BudgetPeriodDaily, start, 10), 1e-9)
+}
+
+// TestBankedSurplus_Weekly: weeks run Monday to Monday, starting with the week holding startDate.
+func TestBankedSurplus_Weekly(t *testing.T) {
+	// Wednesday 2026-07-15; completed weeks start Mon 06-29 and Mon 07-06.
+	calc := &SurplusCalculator{Now: fixedClock(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))}
+	history := series(map[string]float64{
+		"2026-07-05": 70, // Sunday: last day of the first week
+		"2026-07-06": 20, // Monday: first day of the second
+		"2026-07-13": 99, // current week
+	})
+	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+
+	// Week of 06-29: 100 − 70 = 30; week of 07-06: 100 − 20 = 80.
+	assert.InDelta(t, 110, calc.BankedSurplus(history, types.BudgetPeriodWeekly, start, 100), 1e-9)
+}
+
+// TestBankedSurplus_NeverNegative: overspending nets against underspending, and a net
+// overspend banks 0 rather than a debt.
+func TestBankedSurplus_NeverNegative(t *testing.T) {
+	calc := &SurplusCalculator{Now: fixedClock(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))}
+	history := series(map[string]float64{"2026-05-10": 1500, "2026-06-10": 900})
+	start := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	// May −500, June +100.
+	assert.Equal(t, 0.0, calc.BankedSurplus(history, types.BudgetPeriodMonthly, start, 1000))
+}
+
+// TestBankedSurplus_NoPeriods: project-lifetime budgets, an unset period and an unset StartDate
+// bank nothing.
+func TestBankedSurplus_NoPeriods(t *testing.T) {
+	calc := &SurplusCalculator{Now: fixedClock(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))}
+	start := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	assert.Equal(t, 0.0, calc.BankedSurplus(nil, types.BudgetPeriodProject, start, 1000))
+	assert.Equal(t, 0.0, calc.BankedSurplus(nil, "", start, 1000))
+	assert.Equal(t, 0.0, calc.BankedSurplus(nil, types.BudgetPeriodMonthly, time.Time{}, 1000))
+}
+
+// TestComputeSurplusWithRollover_BanksAndCaps: rollover banks completed periods and RolloverCap
+// limits how much of it counts toward the effective balance; without rollover nothing banks.
+func TestComputeSurplusWithRollover_BanksAndCaps(t *testing.T) {
+	calc := &SurplusCalculator{Now: fixedClock(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))}
+	history := series(map[string]float64{"2026-05-10": 200, "2026-06-10": 400})
+	budget := &types.ProjectBudget{
+		TotalBudget:     1000,
+		BudgetPeriod:    types.BudgetPeriodMonthly,
+		StartDate:       time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
+		RolloverEnabled: true,
+		RolloverCap:     500,
+	}
+
+	info := calc.ComputeSurplusWithRollover(history, budget, 1000)
+	assert.InDelta(t, 1400, info.BankedSurplus, 1e-9) // 800 + 600
+	assert.True(t, info.SurplusCapped)
+	assert.InDelta(t, 1500, info.EffectiveBalance, 1e-9) // 1000 + the 500 cap
+
+	budget.RolloverEnabled = false
+	info = calc.ComputeSurplusWithRollover(history, budget, 1000)
+	assert.Equal(t, 0.0, info.BankedSurplus)
+	assert.False(t, info.SurplusCapped)
+	assert.InDelta(t, 1000, info.EffectiveBalance, 1e-9)
+}
+
+// TestPeriodSpend_HalfOpenWindow: a point at a window's End belongs to the next window, and
+// spend before the window is excluded via the preceding point's running total.
+func TestPeriodSpend_HalfOpenWindow(t *testing.T) {
+	calc := &BurnRateCalculator{Now: fixedClock(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))}
+	history := series(map[string]float64{"2026-05-31": 100, "2026-06-01": 30, "2026-06-30": 20, "2026-07-01": 500})
+	june := calc.PeriodWindowAt(types.BudgetPeriodMonthly, time.Date(2026, 6, 10, 0, 0, 0, 0, time.UTC))
+
+	assert.InDelta(t, 50, calc.PeriodSpend(history, june), 1e-9)
+	assert.Equal(t, 30.0, june.TotalDays)
+	assert.Equal(t, 0.0, june.RemainingDays)
 }

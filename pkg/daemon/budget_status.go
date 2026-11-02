@@ -83,9 +83,14 @@ func (s *Server) budgetStatus(ctx context.Context, projectID string) (*project.B
 	}
 
 	// Ledger-derived cost-history series feeds both burn-rate (3d) and surplus (3e). The 7-day
-	// trailing rate and the period-surplus walk both need several weeks of history, so pull 90 days;
-	// the calculators re-clip to their respective windows.
-	series, serr := s.ledgerCostSeries(ctx, projectID, now.AddDate(0, 0, -90), now)
+	// trailing rate needs several weeks of history, so pull at least 90 days, and back to the budget's
+	// start: the period-surplus walk counts a period with no history as unspent. The calculators
+	// re-clip to their respective windows.
+	seriesStart := now.AddDate(0, 0, -90)
+	if !budget.StartDate.IsZero() && budget.StartDate.Before(seriesStart) {
+		seriesStart = budget.StartDate
+	}
+	series, serr := s.ledgerCostSeries(ctx, projectID, seriesStart, now)
 
 	// allocation is the current-period allowance: the per-month grant amount when set, else the total
 	// budget. Shared by burn-rate and surplus so the two agree.
@@ -96,8 +101,11 @@ func (s *Server) budgetStatus(ctx context.Context, projectID string) (*project.B
 
 	// Phase 3d (#654): period-aware burn rate. Reuses the existing BurnRateCalculator (the same
 	// analytics the retired tracker fed).
+	// The series is bucketed by UTC day, so the calculators' period windows run on UTC too;
+	// local-time windows would put every period boundary up to a day off.
+	utcNow := func() time.Time { return s.now().UTC() }
 	if serr == nil && len(series) >= 2 {
-		calc := &project.BurnRateCalculator{Now: s.clock}
+		calc := &project.BurnRateCalculator{Now: utcNow}
 		status.BurnRate = calc.ComputeBurnRate(series, budget.BudgetPeriod, budget.StartDate, allocation)
 	}
 
@@ -107,7 +115,7 @@ func (s *Server) budgetStatus(ctx context.Context, projectID string) (*project.B
 	// RolloverEnabled/RolloverCap fields and fills all five SurplusInfo fields from the real ledger
 	// series.
 	if serr == nil && budget.BudgetPeriod != "" && budget.BudgetPeriod != types.BudgetPeriodProject {
-		scalc := &project.SurplusCalculator{Now: s.clock}
+		scalc := &project.SurplusCalculator{Now: utcNow}
 		status.Surplus = scalc.ComputeSurplusWithRollover(series, budget, allocation)
 	}
 
