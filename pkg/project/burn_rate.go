@@ -106,41 +106,49 @@ func (b *BurnRateCalculator) WeeklyBurnRate(history []CostDataPoint) float64 {
 // CurrentPeriodWindow calculates the current period window given a BudgetPeriod and
 // the date from which the project started being tracked.
 func (b *BurnRateCalculator) CurrentPeriodWindow(period types.BudgetPeriod, startDate time.Time) PeriodWindow {
-	now := b.now()
+	if period == types.BudgetPeriodDaily || period == types.BudgetPeriodWeekly || period == types.BudgetPeriodMonthly {
+		return b.PeriodWindowAt(period, b.now())
+	}
+	// BudgetPeriodProject — entire project lifetime
+	return b.window(period, startDate, startDate.AddDate(10, 0, 0)) // effectively unbounded
+}
 
+// PeriodWindowAt returns the daily, weekly or monthly window that contains t. Elapsed and
+// remaining days are measured against the current time, so a past window is fully elapsed.
+func (b *BurnRateCalculator) PeriodWindowAt(period types.BudgetPeriod, t time.Time) PeriodWindow {
 	var windowStart, windowEnd time.Time
 
 	switch period {
 	case types.BudgetPeriodDaily:
-		windowStart = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		windowEnd = windowStart.Add(24 * time.Hour)
+		windowStart = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+		windowEnd = windowStart.AddDate(0, 0, 1)
 
 	case types.BudgetPeriodWeekly:
-		// Align to Monday of current week.
-		weekday := int(now.Weekday())
+		// Align to Monday of t's week.
+		weekday := int(t.Weekday())
 		if weekday == 0 {
 			weekday = 7 // Sunday → 7
 		}
-		windowStart = time.Date(now.Year(), now.Month(), now.Day()-weekday+1, 0, 0, 0, 0, now.Location())
-		windowEnd = windowStart.Add(7 * 24 * time.Hour)
+		windowStart = time.Date(t.Year(), t.Month(), t.Day()-weekday+1, 0, 0, 0, 0, t.Location())
+		windowEnd = windowStart.AddDate(0, 0, 7)
 
-	case types.BudgetPeriodMonthly:
-		windowStart = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	default: // BudgetPeriodMonthly
+		windowStart = time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, t.Location())
 		windowEnd = windowStart.AddDate(0, 1, 0)
-
-	default: // BudgetPeriodProject — entire project lifetime
-		windowStart = startDate
-		windowEnd = startDate.AddDate(10, 0, 0) // effectively unbounded
 	}
 
+	return b.window(period, windowStart, windowEnd)
+}
+
+// window fills in a PeriodWindow's day counts relative to the current time.
+func (b *BurnRateCalculator) window(period types.BudgetPeriod, windowStart, windowEnd time.Time) PeriodWindow {
 	totalDays := windowEnd.Sub(windowStart).Hours() / 24
-	elapsedDays := now.Sub(windowStart).Hours() / 24
+	elapsedDays := b.now().Sub(windowStart).Hours() / 24
 	if elapsedDays < 0 {
 		elapsedDays = 0
 	}
-	remainingDays := totalDays - elapsedDays
-	if remainingDays < 0 {
-		remainingDays = 0
+	if elapsedDays > totalDays {
+		elapsedDays = totalDays
 	}
 
 	return PeriodWindow{
@@ -148,28 +156,37 @@ func (b *BurnRateCalculator) CurrentPeriodWindow(period types.BudgetPeriod, star
 		End:           windowEnd,
 		TotalDays:     totalDays,
 		ElapsedDays:   elapsedDays,
-		RemainingDays: remainingDays,
+		RemainingDays: totalDays - elapsedDays,
 		PeriodType:    period,
 	}
 }
 
-// PeriodSpend returns the total cost delta within the given window.
+// PeriodSpend returns the total spent within the window [Start, End). History is cumulative
+// (TotalCost is a running total), so spend is the last in-window total minus the total just
+// before the window: the last earlier point's TotalCost, or else the first in-window point's
+// TotalCost less its own DailyCost, so the window's first day counts too.
 func (b *BurnRateCalculator) PeriodSpend(history []CostDataPoint, window PeriodWindow) float64 {
-	if len(history) == 0 {
-		return 0
-	}
-	var inWindow []CostDataPoint
-	for _, p := range history {
-		if !p.Timestamp.Before(window.Start) && !p.Timestamp.After(window.End) {
-			inWindow = append(inWindow, p)
+	var before, first, last *CostDataPoint
+	for i := range history {
+		p := &history[i]
+		switch {
+		case p.Timestamp.Before(window.Start):
+			before = p
+		case p.Timestamp.Before(window.End):
+			if first == nil {
+				first = p
+			}
+			last = p
 		}
 	}
-	if len(inWindow) == 0 {
+	if last == nil {
 		return 0
 	}
-	first := inWindow[0].TotalCost
-	last := inWindow[len(inWindow)-1].TotalCost
-	delta := last - first
+	baseline := first.TotalCost - first.DailyCost
+	if before != nil {
+		baseline = before.TotalCost
+	}
+	delta := last.TotalCost - baseline
 	if delta < 0 {
 		return 0
 	}

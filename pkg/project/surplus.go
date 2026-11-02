@@ -1,6 +1,7 @@
 package project
 
 import (
+	"math"
 	"time"
 
 	"github.com/scttfrdmn/prism/pkg/types"
@@ -35,38 +36,32 @@ func (s *SurplusCalculator) PeriodSurplus(history []CostDataPoint, window Period
 }
 
 // BankedSurplus returns the total accumulated surplus across all completed periods
-// prior to the current one.  Only meaningful for monthly/weekly/daily periods.
+// prior to the current one, starting with the period that contains startDate.  Only
+// meaningful for monthly/weekly/daily periods.  history must reach back to startDate:
+// a period with no history counts as unspent.
 func (s *SurplusCalculator) BankedSurplus(
 	history []CostDataPoint,
 	period types.BudgetPeriod,
 	startDate time.Time,
 	periodAllocation float64,
 ) float64 {
-	if period == types.BudgetPeriodProject {
+	switch period {
+	case types.BudgetPeriodDaily, types.BudgetPeriodWeekly, types.BudgetPeriodMonthly:
+	default:
 		return 0 // project-lifetime budgets don't bank across periods
+	}
+	if startDate.IsZero() {
+		return 0
 	}
 
 	calc := &BurnRateCalculator{Now: s.Now}
 	now := calc.now()
 	var banked float64
 
-	// Walk through all completed periods from startDate to now.
-	cursor := startDate
-	for {
-		window := calc.CurrentPeriodWindow(period, cursor)
-		// Only count fully elapsed windows.
-		if window.End.After(now) {
-			break
-		}
-		surplus := s.PeriodSurplus(history, window, periodAllocation)
-		banked += surplus
-
-		// Advance cursor to the start of the next period.
-		cursor = window.End
-		// Safety: avoid infinite loop on misconfigured period.
-		if cursor.Equal(startDate) || cursor.Before(startDate) {
-			break
-		}
+	// Walk through all completed periods from startDate to now.  Each window starts
+	// where the previous one ended, so the walk always advances.
+	for window := calc.PeriodWindowAt(period, startDate); !window.End.After(now); window = calc.PeriodWindowAt(period, window.End) {
+		banked += s.PeriodSurplus(history, window, periodAllocation)
 	}
 	if banked < 0 {
 		return 0 // never carry negative balance
@@ -100,22 +95,35 @@ func (s *SurplusCalculator) ComputeSurplus(
 	periodAllocation float64,
 	surplusCapPercent float64,
 ) *SurplusInfo {
+	return s.computeSurplus(history, period, startDate, periodAllocation, surplusCapPercent, totalBudget*surplusCapPercent)
+}
+
+// computeSurplus builds a SurplusInfo whose carry-over is limited to capAmount dollars.
+// surplusCapPercent=0 means banking is disabled, so nothing is banked.
+func (s *SurplusCalculator) computeSurplus(
+	history []CostDataPoint,
+	period types.BudgetPeriod,
+	startDate time.Time,
+	periodAllocation float64,
+	surplusCapPercent float64,
+	capAmount float64,
+) *SurplusInfo {
 	calc := &BurnRateCalculator{Now: s.Now}
 	window := calc.CurrentPeriodWindow(period, startDate)
 	currentSurplus := s.PeriodSurplus(history, window, periodAllocation)
 
-	banked := s.BankedSurplus(history, period, startDate, periodAllocation)
+	var banked float64
+	if surplusCapPercent > 0 {
+		banked = s.BankedSurplus(history, period, startDate, periodAllocation)
+	}
 
-	cap := totalBudget * surplusCapPercent
-	capped := surplusCapPercent > 0 && banked > cap
-	effective := s.EffectiveBalance(periodAllocation, banked, totalBudget, surplusCapPercent)
-
+	carried := math.Min(banked, capAmount)
 	return &SurplusInfo{
 		CurrentPeriodSurplus: currentSurplus,
 		BankedSurplus:        banked,
-		EffectiveBalance:     effective,
+		EffectiveBalance:     periodAllocation + carried,
 		SurplusCapPercent:    surplusCapPercent,
-		SurplusCapped:        capped,
+		SurplusCapped:        banked > capAmount,
 	}
 }
 
@@ -123,9 +131,8 @@ func (s *SurplusCalculator) ComputeSurplus(
 // configuration fields on ProjectBudget (#143).
 //
 // When RolloverEnabled=false the behaviour is identical to ComputeSurplus with
-// surplusCapPercent=0.  When RolloverEnabled=true the cap is derived from
-// RolloverCap (absolute dollar amount) unless it is 0, in which case there is
-// no cap (surplusCapPercent=1.0 acts as 100%).
+// surplusCapPercent=0.  When RolloverEnabled=true the carry-over is capped at
+// RolloverCap dollars, or unlimited when it is 0 (reported as surplusCapPercent=1.0).
 func (s *SurplusCalculator) ComputeSurplusWithRollover(
 	history []CostDataPoint,
 	budget *types.ProjectBudget,
@@ -136,12 +143,15 @@ func (s *SurplusCalculator) ComputeSurplusWithRollover(
 			budget.TotalBudget, periodAllocation, 0)
 	}
 
-	// Determine effective cap percentage
-	capPercent := 1.0 // unlimited by default when rollover enabled
-	if budget.RolloverCap > 0 && budget.TotalBudget > 0 {
-		capPercent = budget.RolloverCap / budget.TotalBudget
+	if budget.RolloverCap <= 0 {
+		return s.computeSurplus(history, budget.BudgetPeriod, budget.StartDate,
+			periodAllocation, 1.0, math.Inf(1))
 	}
 
-	return s.ComputeSurplus(history, budget.BudgetPeriod, budget.StartDate,
-		budget.TotalBudget, periodAllocation, capPercent)
+	capPercent := 1.0
+	if budget.TotalBudget > 0 {
+		capPercent = budget.RolloverCap / budget.TotalBudget
+	}
+	return s.computeSurplus(history, budget.BudgetPeriod, budget.StartDate,
+		periodAllocation, capPercent, budget.RolloverCap)
 }

@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -192,11 +193,10 @@ func TestBudgetStatus_SurplusForPeriodicBudget(t *testing.T) {
 	if st.Surplus == nil {
 		t.Fatal("Surplus should be populated for a periodic budget")
 	}
-	// Allocation falls back to TotalBudget (1000) since MonthlyAmount isn't set. PeriodSpend differences
-	// the cumulative series endpoints within the window (200 − 120 = 80; the first in-window point is
-	// the baseline — the established BurnRateCalculator.PeriodSpend behavior), so surplus = 1000 − 80.
-	if st.Surplus.CurrentPeriodSurplus < 919 || st.Surplus.CurrentPeriodSurplus > 921 {
-		t.Fatalf("CurrentPeriodSurplus = %.2f, want ~920", st.Surplus.CurrentPeriodSurplus)
+	// Allocation falls back to TotalBudget (1000) since MonthlyAmount isn't set; both events fall in
+	// this month, so PeriodSpend = 200 and surplus = 1000 − 200.
+	if st.Surplus.CurrentPeriodSurplus < 799 || st.Surplus.CurrentPeriodSurplus > 801 {
+		t.Fatalf("CurrentPeriodSurplus = %.2f, want ~800", st.Surplus.CurrentPeriodSurplus)
 	}
 	// No completed prior periods → banked 0; effective balance = allocation + banked (0).
 	if st.Surplus.BankedSurplus != 0 {
@@ -204,6 +204,59 @@ func TestBudgetStatus_SurplusForPeriodicBudget(t *testing.T) {
 	}
 	if st.Surplus.EffectiveBalance < 999 || st.Surplus.EffectiveBalance > 1001 {
 		t.Fatalf("EffectiveBalance = %.2f, want ~1000", st.Surplus.EffectiveBalance)
+	}
+}
+
+// TestBudgetStatus_BanksCompletedMonths (#764): a monthly budget with rollover banks what earlier
+// months left unspent, reading history back to StartDate (beyond the 90-day trailing window).
+func TestBudgetStatus_BanksCompletedMonths(t *testing.T) {
+	s := newTestBudgetServer(t)
+	ctx := context.Background()
+	projID := seedBudgetedProject(t, s, 1000, 1000)
+
+	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
+	s.clock = func() time.Time { return now }
+
+	// Started in March: March–June are four completed months, March more than 90 days back.
+	proj, _ := s.projectManager.GetProject(ctx, projID)
+	proj.Budget.StartDate = time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	proj.Budget.RolloverEnabled = true
+	if err := s.projectManager.SetProjectBudget(ctx, projID, proj.Budget); err != nil {
+		t.Fatalf("set budget: %v", err)
+	}
+
+	// One event per month: $900 in March, $600 in May, $300 in July (current month).
+	for i, ev := range []struct {
+		at     time.Time
+		amount float64
+	}{
+		{time.Date(2026, 3, 10, 9, 0, 0, 0, time.UTC), 900},
+		{time.Date(2026, 5, 20, 9, 0, 0, 0, time.UTC), 600},
+		{time.Date(2026, 7, 5, 9, 0, 0, 0, time.UTC), 300},
+	} {
+		_ = s.spendLedger.AppendSpend(ctx, projectScope(projID), be.SpendEvent{
+			ID: fmt.Sprintf("e%d", i), AllocationID: engineAllocationID, Amount: ev.amount, At: ev.at,
+			Source: "estimate", ResourceID: "i-1", Compute: ev.amount,
+		})
+	}
+
+	st, err := s.budgetStatus(ctx, projID)
+	if err != nil {
+		t.Fatalf("budgetStatus: %v", err)
+	}
+	if st.Surplus == nil {
+		t.Fatal("Surplus should be populated for a periodic budget")
+	}
+	// Banked: March 100 + April 1000 + May 400 + June 1000 = 2500.
+	if st.Surplus.BankedSurplus < 2499 || st.Surplus.BankedSurplus > 2501 {
+		t.Fatalf("BankedSurplus = %.2f, want ~2500", st.Surplus.BankedSurplus)
+	}
+	if st.Surplus.CurrentPeriodSurplus < 699 || st.Surplus.CurrentPeriodSurplus > 701 {
+		t.Fatalf("CurrentPeriodSurplus = %.2f, want ~700", st.Surplus.CurrentPeriodSurplus)
+	}
+	// Rollover cap 0 means unlimited, so the effective balance is the allocation plus all of it.
+	if st.Surplus.EffectiveBalance < 3499 || st.Surplus.EffectiveBalance > 3501 {
+		t.Fatalf("EffectiveBalance = %.2f, want ~3500", st.Surplus.EffectiveBalance)
 	}
 }
 
