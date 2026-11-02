@@ -53,14 +53,25 @@ type BurnRateInfo struct {
 }
 
 // BurnRateCalculator computes time-bounded spending rates.
-type BurnRateCalculator struct{}
+type BurnRateCalculator struct {
+	// Now returns the current time; nil means time.Now. Tests set it so period windows
+	// (calendar months, weeks, days) don't depend on the date the test runs.
+	Now func() time.Time
+}
+
+func (b *BurnRateCalculator) now() time.Time {
+	if b != nil && b.Now != nil {
+		return b.Now()
+	}
+	return time.Now()
+}
 
 // DailyBurnRate returns dollars/day averaged over up to windowDays of history.
 func (b *BurnRateCalculator) DailyBurnRate(history []CostDataPoint, windowDays int) float64 {
 	if len(history) == 0 {
 		return 0
 	}
-	cutoff := time.Now().AddDate(0, 0, -windowDays)
+	cutoff := b.now().AddDate(0, 0, -windowDays)
 	var recent []CostDataPoint
 	for _, p := range history {
 		if p.Timestamp.After(cutoff) {
@@ -95,7 +106,7 @@ func (b *BurnRateCalculator) WeeklyBurnRate(history []CostDataPoint) float64 {
 // CurrentPeriodWindow calculates the current period window given a BudgetPeriod and
 // the date from which the project started being tracked.
 func (b *BurnRateCalculator) CurrentPeriodWindow(period types.BudgetPeriod, startDate time.Time) PeriodWindow {
-	now := time.Now()
+	now := b.now()
 
 	var windowStart, windowEnd time.Time
 

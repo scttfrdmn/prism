@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to both Go modules (replaces #748, #749). (#750)
 
 ### Fixed
+- A budget-status test failed on the 1st and 2nd of every month because it used the
+  real clock against calendar-month periods; budget calculations now take an
+  injectable clock and the test pins one (#763)
 - **The Windows MSI installs.** Every CI-built MSI, v0.37.0 included, failed to
   install with Windows Installer error 1723 (exit 1603). Its first step called
   a "custom action" DLL that the release runner had replaced with an empty
