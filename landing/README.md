@@ -22,45 +22,43 @@ python3 -m http.server -d landing 8000   # then visit http://localhost:8000
 
 ## Deploying to prismcloud.host
 
-Prism follows the **same AWS pattern spore.host uses** (S3 static website +
-CloudFront + ACM + Route 53), run from the `prism-infra` AWS profile:
-
 ```bash
-AWS_PROFILE=prism-infra ./landing/deploy.sh
+AWS_PROFILE=spore-host-infra ./landing/deploy.sh
 ```
 
-`deploy.sh` creates/uses the `prismcloud-host-website` S3 bucket, enables static
-hosting, sets a public-read policy, uploads `landing/`, and (once
-`PRISM_CLOUDFRONT_ID` is set) invalidates the CloudFront cache. It mirrors
-`~/src/spore-host/spore-host/web/deploy.sh`.
+`deploy.sh` uploads `landing/` to the `prismcloud-host-website` bucket and
+invalidates the CloudFront cache. Pass the profile explicitly if your shell
+already sets `AWS_PROFILE` (e.g. `aws` for Prism's test account).
 
-**One-time infra setup** (see the deploy tracking issue for exact commands):
-1. ACM certificate for `prismcloud.host` in **us-east-1**.
-2. CloudFront distribution: origin = the S3 website endpoint, alternate domain
-   name = `prismcloud.host`, viewer policy = redirect-HTTP-to-HTTPS, cert from
-   step 1. Note its distribution ID → set `PRISM_CLOUDFRONT_ID`.
-3. Route 53 apex A/ALIAS record `prismcloud.host` → the CloudFront distribution.
+### Infrastructure
 
-Docs (`docs.prismcloud.host`) deploy separately — the existing MkDocs `gh-pages`
-site, retargeted to the `docs.` subdomain (or its own S3+CloudFront like
-`docs.spore.host`). See the tracking issue for the coordinated cutover.
+Created once (#686) in the **spore-host-infra** account (966362334030), which
+also holds the `prismcloud.host` Route 53 zone (`Z05117751LI9W0I0HUXM5`) and
+spore.host:
+
+| Resource | Value |
+|----------|-------|
+| S3 bucket | `prismcloud-host-website` (us-east-1, private; all public access blocked) |
+| Origin Access Control | `E3HI7CC3HQFLMZ`; the bucket policy allows reads only from the distribution |
+| ACM certificate | `prismcloud.host` + `www.prismcloud.host` (us-east-1, DNS-validated) |
+| CloudFront | `E5FM6YPIFHGR9` (`d3bxqhnf4uvbjh.cloudfront.net`): HTTPS redirect, managed CachingOptimized + SecurityHeaders policies, 403/404 → `/index.html` with status 404 |
+| Route 53 | `prismcloud.host` and `www.prismcloud.host`: A + AAAA aliases to the distribution |
+
+Unlike spore.host's bucket, this one isn't an S3 static website: CloudFront
+reads it over the S3 REST endpoint through Origin Access Control, so the
+bucket is never public.
 
 ### Domain topology
 
-`prismcloud.host` does triple duty (same pattern as spore.host):
+| Host | Serves |
+|------|--------|
+| `prismcloud.host`, `www.prismcloud.host` | this landing page (CloudFront) |
+| `docs.prismcloud.host` | the MkDocs docs on GitHub Pages: a CNAME to `scttfrdmn.github.io`; `docs/CNAME` and `site_url` in `mkdocs.yml` match |
+| `<name>.<account-base36>.prismcloud.host` | workspace DNS; spored self-registers each instance |
+| `prismcloud.io` | redirects to `https://prismcloud.host` (forwarding at Porkbun, its registrar) |
 
-- **apex `prismcloud.host`** → this landing page (static host)
-- **`docs.prismcloud.host`** → the MkDocs documentation site (`mkdocs.yml`)
-- **`*.prismcloud.host`** → live workspace DNS, managed by Route 53; spored
-  self-registers each instance as `<name>.<account-base36>.prismcloud.host`
-
-Because the apex serves the landing and `*` serves workspace DNS, keep the apex
-A/ALIAS record pointed at the static host and let the wildcard resolve through
-Route 53 — they don't collide.
-
-The docs site currently ships its own `docs/CNAME` (`prismcloud.host`); when the
-landing takes the apex, move the docs to the `docs.` subdomain and update
-`site_url` in `mkdocs.yml` accordingly.
+Workspace names are registered under an account label, so they don't collide
+with `www` or `docs`.
 
 ## Editing
 
