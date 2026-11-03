@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (#750)
 
 ### Changed
+- **prismcloud.host is the project site; the docs moved to docs.prismcloud.host.**
+  The landing page now serves the apex from a private S3 bucket behind CloudFront,
+  and the docs moved from prismcloud.io to docs.prismcloud.host (still GitHub
+  Pages). prismcloud.io redirects to prismcloud.host. (#686)
 - **Go 1.27.3** (from 1.26.10) in both modules and the CI and release
   workflows. One file is reformatted for Go 1.27's gofmt. (#755)
 - **The Windows installer requires Windows 11** (build 22000 or later; Windows
