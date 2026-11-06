@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-11-05
+
 ### Security
 - **minimatch 11.0.3** in the GUI frontend's ESLint toolchain, via an npm
   `overrides` entry (globparts denial-of-service advisory; no 3.x or 10.x

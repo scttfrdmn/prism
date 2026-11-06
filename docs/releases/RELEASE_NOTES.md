@@ -8,6 +8,7 @@ For the complete changelog with all details, see [CHANGELOG.md on GitHub](https:
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [v0.38.0](#v0380) | 2026-11-05 | Windows MSI installs (Windows 11+); installers ship the GUI; budget rollover banks; Wails v3.0.0, Go 1.27.3 |
 | [v0.37.0](#v0370) | 2026-10-13 | Security hardening release; job arrays, parameter sweeps, completion signaling; spend-ledger fixes |
 | [v0.36.1](#v0361) | 2026-07-08 | Security patch: Go 1.26.5 (GO-2026-5856); Wails v3 alpha.102 |
 | [v0.36.0](#v0360) | 2026-07-07 | `workspace cost --billed`, persistence seam with DynamoDB backend |
@@ -30,6 +31,30 @@ For the complete changelog with all details, see [CHANGELOG.md on GitHub](https:
 | [v0.29.0](#v0290) | 2026-04-02 | File operations (`workspace files push/pull/list`), Substrate integration tests |
 | [v0.28.1](#v0281) | 2026-04-02 | AMI, Marketplace, Idle Detection E2E tests |
 | [v0.28.0](#v0280) | 2026-04-01 | Cloudscape 3.0.1255 upgrade, Windows GUID, semver constraints |
+
+---
+
+## v0.38.0
+
+**Released**: 2026-11-05
+
+### ⚠️ Action required
+- **The Windows installer requires Windows 11** (build 22000 or later; Windows Server 2025 also qualifies). It refuses to install on Windows 10. (#757)
+- **Docs moved to [docs.prismcloud.host](https://docs.prismcloud.host).** [prismcloud.host](https://prismcloud.host) is now the project site; update bookmarks to the old prismcloud.io docs. (#686)
+
+### Fixed
+- **The Windows MSI installs.** Every earlier CI-built MSI, v0.37.0 included, failed with Windows Installer error 1723. The broken custom actions are gone, the Windows version check works on Windows 10/11, and the `PrismDaemon` service now starts. The release workflow installs and uninstalls each MSI before publishing it. (#757)
+- **The installers include the GUI.** The Windows MSI shipped `cmd.exe` as `prism-gui.exe`, and the macOS DMG left the GUI out and installed a launcher script as `prism`. Both now ship the real GUI and CLI. (#754)
+- **Budget rollover banks.** Banked surplus was always $0, so unspent budget never carried over. Period spend now counts each period's first day and uses UTC periods to match the spend ledger. Nothing banks when rollover is off, and a rollover cap of 0 means unlimited, as documented. (#764)
+- The GUI no longer logs a bogus "Failed to set tray icon" on every launch. (#751)
+
+### Changed
+- **Wails v3.0.0** (stable) for the GUI, from v3.0.0-alpha.102. (#751)
+- **Go 1.27.3**. (#755)
+- AWS SDK for Go v2 and `go-chi/chi/v5` 5.4.0. (#750)
+
+### Security
+- Go 1.26.10 (GO-2026-6809, `crypto/x509`) before the move to 1.27.3. In the GUI frontend: vite 7.3.7, zod 4.6.7, and minimatch 11.0.3 for the ESLint toolchain. (#750, #760)
 
 ---
 
