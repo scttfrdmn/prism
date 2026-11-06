@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Dependencies:** AWS SDK for Go v2 1.47.5, `service/ec2` 1.343.0 and
+  `service/artifact` 1.30.0, applied to both Go modules (replaces #766).
+
 ## [0.38.0] - 2026-11-05
 
 ### Security
