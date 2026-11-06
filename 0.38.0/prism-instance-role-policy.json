@@ -1,0 +1,17 @@
+{
+  "_comment": "The INSTANCE-SIDE role Prism attaches to each workspace (Prism-Instance-Profile-Role), distinct from the user/daemon policy in prism-iam-policy.json. Prism AUTO-CREATES this on first launch when the user policy grants the IAM* actions. It combines the AWS-managed AmazonSSMManagedInstanceCore policy with the inline policy below. Documented here so it can be pre-provisioned by an administrator when end users lack IAM CreateRole permission. Trust policy: ec2.amazonaws.com may sts:AssumeRole.",
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AutonomousIdleDetection",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags",
+        "ec2:DescribeTags",
+        "ec2:DescribeInstances",
+        "ec2:StopInstances"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
